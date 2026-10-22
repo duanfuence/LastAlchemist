@@ -19,7 +19,7 @@ export interface CombineReport {
   outcome: CombineOutcome;
   first: string;
   second: string;
-  /** Элемент-результат на столе (при успешном соединении). */
+  /** Элемент-результат на столе: создаётся только при новом открытии. */
   result?: BoardItem;
   /** Элементы стола, израсходованные соединением. */
   consumed: number[];
@@ -28,7 +28,9 @@ export interface CombineReport {
 /**
  * Игровая сессия: прогресс, рабочее поле и сохранение.
  * Правила соединения:
- * - при успехе оба участника расходуются, результат появляется на месте цели;
+ * - при успехе участники со стола расходуются (элементы из списка бесконечны);
+ * - результат появляется на месте цели, только если это новое открытие;
+ * - уже открытый результат на стол не кладётся, но новый рецепт для него запоминается;
  * - при неудаче ничего не меняется;
  * - повторное получение известного элемента не увеличивает число открытий.
  */
@@ -123,8 +125,11 @@ export class GameSession {
       }
     }
     this.progressState = progress;
-    const result = this.board.add(outcome.element, anchor.x, anchor.y);
-    if (result) report.result = result;
+    // Уже открытый элемент есть в списке — второй экземпляр на столе только засоряет его
+    if (outcome.kind === 'discovery') {
+      const result = this.board.add(outcome.element, anchor.x, anchor.y);
+      if (result) report.result = result;
+    }
     this.changed();
     return report;
   }

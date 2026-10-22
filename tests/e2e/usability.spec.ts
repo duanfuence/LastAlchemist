@@ -1,6 +1,6 @@
 import type { Page, TestInfo } from '@playwright/test';
 import { expect, press, test } from './fixtures';
-import { boardItems, boardPoint, expectNoHorizontalOverflow, medalCenter, mouseDrag, openLab, touchDrag } from './game-helpers';
+import { boardItems, boardPoint, expectNoHorizontalOverflow, medalCenter, mouseDrag, openLab, touchDrag, touchFlick } from './game-helpers';
 
 /** Профили с одностраничной раскладкой (телефон и планшет в портретной ориентации). */
 const isPortrait = (testInfo: TestInfo): boolean => {
@@ -116,7 +116,7 @@ test.describe('полный список на телефоне — вкладн�
     await press(page.getByTestId('catalog-toggle'), testInfo);
     await expect(sheet(page)).toHaveAttribute('data-expanded', '');
     // Быстрое движение пальцем листает список и ничего не переносит
-    await touchDrag(page, page.getByTestId('catalog-fire'), water);
+    await touchFlick(page, page.getByTestId('catalog-fire'), water);
     await expect(sheet(page)).toHaveAttribute('data-expanded', '');
     await expect(boardItems(page, 'steam')).toHaveCount(0);
     // Удержание берёт элемент: лист уходит, открывая весь стол, и элемент ложится на цель

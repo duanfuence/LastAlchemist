@@ -109,6 +109,15 @@ export class DragController<S> {
       holding: holdMs > 0,
       holdTimer: null,
     };
+    // Мышь и перо захватываются сразу: при быстром рывке первое же движение может прийти уже
+    // за пределами элемента и потеряться. Касание браузер захватывает сам.
+    if (event.pointerType !== 'touch') {
+      try {
+        node.setPointerCapture(event.pointerId);
+      } catch {
+        // Указатель уже отпущен
+      }
+    }
     if (holdMs > 0) {
       const pending = this.active;
       pending.holdTimer = setTimeout(() => {

@@ -11,12 +11,14 @@ export class Toast {
     this.root = el('div', { className: 'toast-host', attrs: { 'aria-live': 'polite', 'data-testid': 'toast-host' } });
   }
 
-  show(kind: ToastKind, label: string, name: string, art: HTMLElement): void {
+  /** shortLabel — вариант для узких экранов, где полная фраза не помещается в панель. */
+  show(kind: ToastKind, label: string, shortLabel: string, name: string, art: HTMLElement): void {
     this.hide();
     const toast = el('div', { className: `toast toast--${kind}`, attrs: { 'data-testid': 'toast', 'data-kind': kind } }, [
       art,
       el('span', { className: 'toast__text' }, [
-        el('span', { className: 'toast__label', text: label }),
+        el('span', { className: 'toast__label toast__label--full', text: label }),
+        el('span', { className: 'toast__label toast__label--short', text: shortLabel }),
         el('span', { className: 'toast__name', text: name }),
       ]),
     ]);

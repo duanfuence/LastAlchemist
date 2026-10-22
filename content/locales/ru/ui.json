@@ -31,8 +31,8 @@
   "lab.noRecipe": "{first} и {second} не соединяются.",
   "lab.boardFull": "На столе нет места. Уберите лишнее.",
   "lab.discovery": "Новое открытие",
-  "lab.known": "Уже известно",
-  "lab.newRecipe": "Новый способ получить",
+  "lab.known": "Вы уже знаете этот рецепт",
+  "lab.newRecipe": "Найден альтернативный рецепт",
   "notice.corrupted": "Записи книги повреждены и не читаются. Начата чистая книга, а старые записи сохранены отдельно.",
   "notice.storageUnavailable": "Браузер не разрешает сохранять прогресс: открытия пропадут после закрытия страницы.",
   "notice.close": "Закрыть",
@@ -40,5 +40,9 @@
   "lab.coachTitle": "Первый опыт: {first} + {second}",
   "lab.coachPlace": "Перенесите стихию «{first}» на стол — или коснитесь её в списке.",
   "lab.coachCombine": "Теперь положите на неё «{second}» — или коснитесь «{first}» на столе, а затем «{second}».",
-  "lab.coachSecond": "Теперь коснитесь «{second}» — в списке или на столе."
+  "lab.coachSecond": "Теперь коснитесь «{second}» — в списке или на столе.",
+  "lab.knownCaption": "{first} + {second} = {result}. Рецепт уже известен, элемент — в списке.",
+  "lab.newRecipeCaption": "{first} + {second} = {result}. Новый рецепт записан в книгу, элемент уже в списке.",
+  "lab.knownShort": "Рецепт известен",
+  "lab.newRecipeShort": "Новый рецепт"
 }

@@ -31,11 +31,15 @@ export async function boardPoint(page: Page, fx: number, fy: number): Promise<{ 
 }
 
 /** Перетаскивание мышью с промежуточными шагами, как у человека. */
-export async function mouseDrag(page: Page, from: Locator, to: { x: number; y: number }): Promise<void> {
+export async function mouseDrag(
+  page: Page,
+  from: Locator,
+  to: { x: number; y: number },
+  steps = 12,
+): Promise<void> {
   const start = await medalCenter(from);
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  const steps = 12;
   for (let i = 1; i <= steps; i += 1) {
     await page.mouse.move(start.x + ((to.x - start.x) * i) / steps, start.y + ((to.y - start.y) * i) / steps);
   }
@@ -64,6 +68,27 @@ export async function touchDrag(
     await touch('touchMove', start.x + ((to.x - start.x) * i) / steps, start.y + ((to.y - start.y) * i) / steps);
   }
   await touch('touchEnd', to.x, to.y);
+  await cdp.detach();
+}
+
+/**
+ * Быстрый рывок пальцем: все события уходят в браузер подряд, без ожидания ответа на каждое.
+ * В touchDrag каждое движение ждёт подтверждения, и под нагрузкой путь до порога
+ * может занять дольше задержки удержания — тогда «быстрый» жест превращается в удержание.
+ */
+export async function touchFlick(page: Page, from: Locator, to: { x: number; y: number }): Promise<void> {
+  const start = await medalCenter(from);
+  const cdp = await page.context().newCDPSession(page);
+  const point = (x: number, y: number) => [{ x: Math.round(x), y: Math.round(y) }];
+  const steps = 6;
+  const events = [cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(start.x, start.y) })];
+  for (let i = 1; i <= steps; i += 1) {
+    const x = start.x + ((to.x - start.x) * i) / steps;
+    const y = start.y + ((to.y - start.y) * i) / steps;
+    events.push(cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(x, y) }));
+  }
+  events.push(cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }));
+  await Promise.all(events);
   await cdp.detach();
 }
 

@@ -635,6 +635,7 @@
   background: rgb(250 241 220 / 0.98);
   color: var(--ink);
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(93 70 50 / 0.3);
+  overflow: hidden;
   white-space: nowrap;
   animation: toast-in 260ms ease-out;
 }
@@ -651,9 +652,26 @@
 }
 
 .toast__label {
+  overflow: hidden;
   font-family: var(--font-hand);
   font-size: 0.9rem;
   color: var(--burgundy);
+  text-overflow: ellipsis;
+}
+
+.toast__label--short {
+  display: none;
+}
+
+/* На узкой панели телефона — короткая подпись; полностью результат описан под столом */
+@media (max-width: 600px) {
+  .toast__label--full {
+    display: none;
+  }
+
+  .toast__label--short {
+    display: block;
+  }
 }
 
 .toast__name {

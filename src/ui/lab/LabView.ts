@@ -551,12 +551,22 @@ export class LabView {
     this.animate(resultNode, outcome.kind === 'discovery' ? 'is-discovery' : 'is-born');
     if (outcome.kind === 'discovery') this.animate(this.counter, 'is-bumped');
 
-    const label = this.i18n.t(
-      outcome.kind === 'discovery' ? 'lab.discovery' : outcome.kind === 'new-recipe' ? 'lab.newRecipe' : 'lab.known',
-    );
+    const labels = {
+      discovery: ['lab.discovery', 'lab.discovery'],
+      'new-recipe': ['lab.newRecipe', 'lab.newRecipeShort'],
+      known: ['lab.known', 'lab.knownShort'],
+    } as const;
+    const [full, short] = labels[outcome.kind];
     const text = this.i18n.element(outcome.element);
-    this.toast.show(outcome.kind, label, text.name, medal(this.session.content, outcome.element));
-    this.flashMessage(`${text.name}. ${text.description}`);
+    this.toast.show(outcome.kind, this.i18n.t(full), this.i18n.t(short), text.name, medal(this.session.content, outcome.element));
+    if (outcome.kind === 'discovery') {
+      this.flashMessage(`${text.name}. ${text.description}`);
+    } else {
+      // Известный результат на стол не кладётся: подпись объясняет, куда делись участники
+      const name = (id: string): string => this.i18n.element(id).name;
+      const key = outcome.kind === 'new-recipe' ? 'lab.newRecipeCaption' : 'lab.knownCaption';
+      this.flashMessage(this.i18n.t(key, { first: name(report.first), second: name(report.second), result: text.name }));
+    }
   }
 
   private rejected(

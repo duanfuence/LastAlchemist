@@ -1,3 +1,4 @@
+import type { Page, TestInfo } from '@playwright/test';
 import { expect, press, test } from './fixtures';
 import {
   SAVE_KEY,
@@ -71,9 +72,13 @@ test.describe('лаборатория', () => {
 
     await combineByTaps();
     await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'known');
-    await expect(page.getByTestId('toast')).toContainText('Уже известно');
+    await expect(page.getByTestId('toast')).toContainText('Вы уже знаете этот рецепт');
+    await expect(page.getByTestId('board-caption')).toContainText('Рецепт уже известен');
     await expect(page.getByTestId('discovery-count')).toHaveText('1 из 27');
-    await expect(boardItems(page, 'steam')).toHaveCount(2);
+    // Участники израсходованы, второго Пара на столе нет, анимации открытия нет
+    await expect(boardItems(page, 'steam')).toHaveCount(1);
+    await expect(boardItems(page)).toHaveCount(1);
+    await expect(page.locator('.board-item.is-discovery')).toHaveCount(0);
     await expect(page.locator('.catalog-item[data-element="steam"]')).toHaveCount(1);
   });
 
@@ -88,6 +93,20 @@ test.describe('лаборатория', () => {
     await expect(page.getByTestId('board-caption')).toHaveText('Огонь и Огонь не соединяются.');
     await expect(fires).toHaveCount(2);
     await expect(page.getByTestId('discovery-count')).toHaveText('0 из 27');
+  });
+
+  test('быстрый рывок мышью не теряет перенос', async ({ page }, testInfo) => {
+    test.skip(touchOnly(testInfo), 'мышь проверяется на компьютерных профилях');
+    await openLab(page, testInfo);
+    // Два шага: первое же движение уходит далеко за пределы элемента списка
+    await mouseDrag(page, page.getByTestId('catalog-air'), await boardPoint(page, 0.3, 0.35), 2);
+    await expect(boardItems(page, 'air')).toHaveCount(1);
+    await mouseDrag(page, page.getByTestId('catalog-earth'), await medalCenter(boardItems(page, 'air')), 2);
+    await expect(boardItems(page, 'dust')).toHaveCount(1);
+    await mouseDrag(page, boardItems(page, 'dust'), await boardPoint(page, 0.7, 0.6), 2);
+    const at = await medalCenter(boardItems(page, 'dust'));
+    const target = await boardPoint(page, 0.7, 0.6);
+    expect(Math.hypot(at.x - target.x, at.y - target.y)).toBeLessThan(6);
   });
 
   test('элемент перемещается по столу мышью', async ({ page }, testInfo) => {
@@ -202,6 +221,71 @@ test.describe('удаление и управление столом', () => {
     await boardItems(page, 'fire').focus();
     await page.keyboard.press('Enter');
     await expect(boardItems(page, 'steam')).toHaveCount(1);
+  });
+});
+
+test.describe('альтернативные рецепты', () => {
+  /** Соединение касаниями: элемент списка на стол, выбор его, затем второй элемент из списка. */
+  const combineFromCatalog = async (page: Page, testInfo: TestInfo, first: string, second: string) => {
+    await press(page.getByTestId(`catalog-${first}`), testInfo);
+    await press(boardItems(page, first).last(), testInfo);
+    await press(page.getByTestId(`catalog-${second}`), testInfo);
+  };
+
+  test('альтернативный рецепт записывается без второго экземпляра и переживает перезагрузку', async ({
+    page,
+  }, testInfo) => {
+    await openLab(page, testInfo);
+    await combineFromCatalog(page, testInfo, 'air', 'water');
+    await expect(boardItems(page, 'rain')).toHaveCount(1);
+    await combineFromCatalog(page, testInfo, 'water', 'fire');
+    await combineFromCatalog(page, testInfo, 'steam', 'air');
+    await expect(page.getByTestId('discovery-count')).toHaveText('3 из 27');
+    const itemsBefore = await boardItems(page).count();
+
+    // Облако + Вода — другой путь к уже открытому Дождю
+    await press(page.getByTestId('catalog-cloud'), testInfo);
+    await press(boardItems(page, 'cloud').last(), testInfo);
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'new-recipe');
+    await expect(page.getByTestId('toast')).toContainText('Найден альтернативный рецепт');
+    await expect(page.getByTestId('board-caption')).toContainText('Новый рецепт записан');
+    await expect(boardItems(page, 'rain')).toHaveCount(1);
+    await expect(boardItems(page)).toHaveCount(itemsBefore);
+    await expect(page.locator('.board-item.is-discovery')).toHaveCount(0);
+    await expect(page.getByTestId('discovery-count')).toHaveText('3 из 27');
+    await waitForSaved(page, '"cloud|water"');
+
+    // Известный элемент по-прежнему берётся из списка и участвует в других соединениях
+    await combineFromCatalog(page, testInfo, 'rain', 'earth');
+    await expect(boardItems(page, 'plant')).toHaveCount(1);
+    await expect(page.getByTestId('discovery-count')).toHaveText('4 из 27');
+    await waitForSaved(page, '"plant"');
+
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await press(page.getByTestId('open-book'), testInfo);
+    await expect(page.getByTestId('discovery-count')).toHaveText('4 из 27');
+    await expect(boardItems(page, 'rain')).toHaveCount(1);
+    await combineFromCatalog(page, testInfo, 'cloud', 'water');
+    await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'known');
+    await expect(page.getByTestId('toast')).toContainText('Вы уже знаете этот рецепт');
+    await expect(boardItems(page, 'rain')).toHaveCount(1);
+  });
+
+  test('повторное соединение перетаскиванием расходует участников', async ({ page }, testInfo) => {
+    test.skip(Boolean(testInfo.project.use.hasTouch), 'мышь проверяется на компьютерных профилях');
+    await openLab(page, testInfo);
+    await mouseDrag(page, page.getByTestId('catalog-air'), await boardPoint(page, 0.3, 0.3));
+    await mouseDrag(page, page.getByTestId('catalog-earth'), await medalCenter(boardItems(page, 'air')));
+    await expect(boardItems(page, 'dust')).toHaveCount(1);
+
+    await mouseDrag(page, page.getByTestId('catalog-earth'), await boardPoint(page, 0.7, 0.6));
+    await mouseDrag(page, page.getByTestId('catalog-air'), await medalCenter(boardItems(page, 'earth')));
+    await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'known');
+    await expect(boardItems(page, 'earth')).toHaveCount(0);
+    await expect(boardItems(page, 'dust')).toHaveCount(1);
+    await expect(boardItems(page)).toHaveCount(1);
   });
 });
 
