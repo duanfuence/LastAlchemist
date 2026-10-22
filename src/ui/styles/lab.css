@@ -70,23 +70,71 @@
   color: var(--parchment-shadow);
 }
 
+/* Кнопки на столе — кожаные ярлыки с золотой окантовкой, как у переплёта */
 .desk-bar__button {
   flex: 0 0 auto;
   min-height: 40px;
   min-width: 40px;
   padding: 0.2em 0.9em 0.3em;
-  border: 1px solid rgb(234 217 184 / 0.45);
+  border: 1px solid rgb(214 176 98 / 0.55);
   border-radius: 4px;
-  background: rgb(234 217 184 / 0.06);
-  color: var(--parchment-light);
+  background:
+    linear-gradient(rgb(255 220 180 / 0.1), rgb(0 0 0 / 0.15)),
+    url('../../../assets/textures/leather.webp') center / 256px,
+    #5a2a1c;
+  box-shadow:
+    inset 0 0 0 2px rgb(40 16 8 / 0.5),
+    inset 0 0 0 3px rgb(214 176 98 / 0.22),
+    0 2px 4px rgb(0 0 0 / 0.5);
+  color: #ecd6a5;
   font-size: 1rem;
   font-variant: small-caps;
   letter-spacing: 0.06em;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.6);
   cursor: pointer;
 }
 
 .desk-bar__button:hover {
-  background: rgb(234 217 184 / 0.16);
+  filter: brightness(1.12);
+}
+
+.desk-bar__button:active {
+  transform: translateY(1px);
+}
+
+/* Звук: кнопка-динамик и ползунок громкости (на узких экранах — только кнопка) */
+.sound-control {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sound-control__toggle {
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+}
+
+.sound-control__toggle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.sound-control__toggle[aria-pressed='false'] {
+  color: rgb(236 214 165 / 0.6);
+}
+
+.sound-control__volume {
+  width: clamp(70px, 7vw, 110px);
+  accent-color: #c9a457;
+  cursor: pointer;
+}
+
+@media (max-width: 900px), (orientation: portrait) {
+  .sound-control__volume {
+    display: none;
+  }
 }
 
 .desk-bar__arrow {
@@ -240,7 +288,7 @@
 }
 
 .catalog-item:hover {
-  background: rgb(255 248 230 / 0.45);
+  background: radial-gradient(closest-side, rgb(255 248 230 / 0.6), transparent);
 }
 
 .catalog-item .medal {
@@ -259,19 +307,28 @@
   overflow-wrap: anywhere;
 }
 
-/* Только что открытый элемент отмечен золотым ободком, пока его не используют */
-.catalog-item.is-fresh .medal {
-  box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgb(217 182 101 / 0.8);
+/* Только что открытый элемент отмечен золотым сиянием, пока его не используют */
+.catalog-item.is-fresh .medal::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(246 214 130 / 0.75), rgb(240 200 110 / 0.25) 60%, transparent);
 }
 
 /* Подсказка первого опыта: стихии для первого соединения мягко подсвечены */
-.catalog-item.is-suggested .medal {
+.catalog-item.is-suggested .medal::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(246 214 130 / 0.7), rgb(240 200 110 / 0.2) 60%, transparent);
   animation: suggest 1.8s ease-in-out infinite alternate;
 }
 
 @keyframes suggest {
-  from { box-shadow: 0 0 0 1px rgb(180 138 60 / 0.4); }
-  to { box-shadow: 0 0 0 3px var(--gold), 0 0 12px rgb(217 182 101 / 0.7); }
+  from { opacity: 0.25; }
+  to { opacity: 1; }
 }
 
 .catalog__context {
@@ -301,6 +358,7 @@
   border-radius: 14px 14px 4px 4px;
   background:
     linear-gradient(to bottom, rgb(255 248 230 / 0.55), transparent 40px),
+    url('../../../assets/textures/parchment.webp') 0 0 / 1024px,
     var(--parchment);
   box-shadow:
     0 -10px 24px rgb(60 40 20 / 0.28),
@@ -350,33 +408,35 @@
 }
 
 /* В листе элемент берут удержанием: приподнятый элемент можно нести на стол */
-.catalog-item.is-armed .medal {
-  transform: scale(1.12);
-  box-shadow: 0 6px 14px rgb(60 40 20 / 0.35), 0 0 0 2px var(--gold);
-  transition: transform 120ms ease, box-shadow 120ms ease;
+.catalog-item.is-armed .medal__figure {
+  transform: translateY(-8%) scale(1.1);
 }
 
-/* ----- Рабочий стол ----- */
+.catalog-item.is-armed .medal__shadow {
+  transform: translate(6%, 10%) scale(1.25);
+  opacity: 0.4;
+}
+
+/* ----- Рабочий стол: часть страницы, а не отдельная карточка ----- */
 .board {
   order: 1;
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  border-radius: 12px;
-  background: radial-gradient(ellipse at 50% 45%, rgb(255 248 230 / 0.35), transparent 70%);
-  box-shadow: inset 0 0 0 1px rgb(93 70 50 / 0.18);
   overflow: hidden;
   touch-action: none;
 }
 
+/* Круг опытов: выцветший чертёж красно-коричневыми чернилами */
 .board__emblem {
   position: absolute;
   top: 45%;
   left: 50%;
-  width: min(70%, 420px);
+  width: min(74%, 440px);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  opacity: 0.09;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  color: #7a3b28;
+  opacity: 0.13;
   pointer-events: none;
 }
 
@@ -431,7 +491,7 @@
   border: none;
   background: none;
   color: var(--ink);
-  /* Точка привязки — центр медальона */
+  /* Точка привязки — центр рисунка */
   transform: translate(-50%, calc(var(--item-size) / -2));
   cursor: grab;
   touch-action: none;
@@ -439,24 +499,25 @@
 
 .board-item .medal {
   --medal-size: var(--item-size);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(250 241 220 / 0.95) 60%, rgb(243 231 204 / 0.85));
-  box-shadow: 0 2px 6px rgb(60 40 20 / 0.25);
-  transition: box-shadow 150ms ease, transform 150ms ease;
 }
 
 .board-item__name {
+  position: relative;
   width: max-content;
   max-width: calc(var(--item-size) * 1.6);
   padding: 0 4px;
-  border-radius: 4px;
-  background: rgb(243 231 204 / 0.8);
   font-size: 0.86rem;
   font-weight: 700;
   font-variant: small-caps;
   letter-spacing: 0.03em;
   line-height: 1.1;
   text-align: center;
+  /* Подпись чернилами прямо на бумаге: светлый ореол отделяет её от чертежа под ней */
+  text-shadow:
+    0 0 2px var(--parchment-light),
+    0 0 4px var(--parchment-light),
+    0 0 8px var(--parchment);
+  transition: opacity 200ms ease;
 }
 
 .board-item:focus-visible {
@@ -464,17 +525,46 @@
 }
 
 .board-item:focus-visible .medal {
-  box-shadow: 0 0 0 3px var(--gold), 0 2px 6px rgb(60 40 20 / 0.25);
+  outline: 2px dashed var(--gold);
+  outline-offset: 2px;
+  border-radius: 50%;
 }
 
-.board-item.is-selected .medal {
-  box-shadow: 0 0 0 3px var(--burgundy), 0 0 14px rgb(110 42 38 / 0.45);
-  transform: scale(1.06);
+/* Выбранный элемент обведён от руки бордовыми чернилами */
+.board-item.is-selected .medal::after {
+  content: '';
+  position: absolute;
+  inset: -7%;
+  border: 2.5px solid var(--burgundy);
+  border-radius: 47% 53% 50% 46% / 53% 47% 52% 48%;
+  transform: rotate(-10deg);
+  opacity: 0.85;
+  animation: ink-ring 280ms ease-out both;
 }
 
-.board-item.is-target .medal {
-  box-shadow: 0 0 0 3px var(--gold), 0 0 16px rgb(217 182 101 / 0.9);
-  transform: scale(1.1);
+.board-item.is-selected .medal__figure {
+  transform: translateY(-3%) scale(1.04);
+}
+
+@keyframes ink-ring {
+  from { clip-path: polygon(50% 50%, 50% -10%, 50% -10%, 50% -10%, 50% -10%, 50% -10%); opacity: 0.3; }
+  25% { clip-path: polygon(50% 50%, 50% -10%, 110% -10%, 110% 50%, 110% 50%, 110% 50%); }
+  50% { clip-path: polygon(50% 50%, 50% -10%, 110% -10%, 110% 110%, 50% 110%, 50% 110%); }
+  75% { clip-path: polygon(50% 50%, 50% -10%, 110% -10%, 110% 110%, -10% 110%, -10% 50%); }
+  to { clip-path: polygon(50% 50%, 50% -10%, 110% -10%, 110% 110%, -10% 110%, -10% -10%); opacity: 0.85; }
+}
+
+/* Цель переноса: тёплое золотое свечение под рисунком */
+.board-item.is-target .medal::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(250 220 140 / 0.85), rgb(240 200 110 / 0.3) 60%, transparent);
+}
+
+.board-item.is-target .medal__figure {
+  transform: scale(1.08);
 }
 
 .board-item.is-dragging {
@@ -482,53 +572,220 @@
   cursor: grabbing;
 }
 
-.board-item.is-dragging .medal {
-  box-shadow: 0 10px 18px rgb(60 40 20 / 0.35);
-  transform: scale(1.08);
+/* Элемент приподнят над страницей: рисунок выше и крупнее, тень отходит вниз вправо и светлеет */
+.board-item.is-dragging .medal__figure,
+.drag-ghost .medal__figure {
+  transform: translateY(-10%) scale(1.1) rotate(-3deg);
 }
 
-/* Соединяемые элементы сливаются в точку */
+.board-item.is-dragging .medal__shadow,
+.drag-ghost .medal__shadow {
+  transform: translate(10%, 14%) scale(1.35);
+  opacity: 0.35;
+}
+
+.board-item.is-dragging .board-item__name {
+  opacity: 0;
+}
+
+/* Соединяемые элементы стягиваются к цели и растворяются в свете */
 .board-item.is-merging {
   pointer-events: none;
-  transition: left 160ms ease, top 160ms ease, opacity 200ms ease, transform 200ms ease;
+  transition: left 180ms ease, top 180ms ease;
+}
+
+.board-item.is-merging .medal__figure {
+  transform: scale(0.5) rotate(14deg);
+  filter: blur(3px) brightness(1.8) saturate(0.6);
   opacity: 0;
-  transform: translate(-50%, calc(var(--item-size) / -2)) scale(0.4);
+  transition: transform 280ms ease-in, filter 280ms ease-in, opacity 280ms ease-in;
 }
 
-/* Появление результата */
-.board-item.is-born .medal,
-.board-item.is-placed .medal {
-  animation: born 420ms cubic-bezier(0.2, 1.4, 0.4, 1);
+.board-item.is-merging .medal__shadow,
+.board-item.is-merging .board-item__name {
+  opacity: 0;
+  transition: opacity 160ms ease;
 }
 
-/* Новое открытие: появление и золотое сияние */
-.board-item.is-discovery .medal {
-  animation:
-    born 480ms cubic-bezier(0.2, 1.4, 0.4, 1),
-    glow 2200ms ease-out;
+/* Элемент кладут на страницу: опускается и садится, тень собирается под ним */
+.board-item.is-born .medal__figure,
+.board-item.is-placed .medal__figure {
+  animation: settle 340ms cubic-bezier(0.25, 1.2, 0.5, 1);
 }
 
-@keyframes born {
-  from { transform: scale(0.3); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+.board-item.is-born .medal__shadow,
+.board-item.is-placed .medal__shadow {
+  animation: settle-shadow 340ms ease-out;
 }
 
-@keyframes glow {
-  0%, 30% { box-shadow: 0 0 0 3px var(--gold), 0 0 26px 6px rgb(217 182 101 / 0.95); }
-  100% { box-shadow: 0 0 0 0 transparent, 0 2px 6px rgb(60 40 20 / 0.25); }
+@keyframes settle {
+  from { transform: translateY(-14%) scale(1.08); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
 }
 
-/* Нет рецепта: элемент вздрагивает */
-.board-item.is-rejected .medal {
-  animation: shake 360ms ease-in-out;
+@keyframes settle-shadow {
+  from { transform: translate(8%, 10%) scale(1.3); opacity: 0.15; }
+}
+
+/*
+ * Новое открытие: рисунок проявляется из света, как изображение на фотопластинке,
+ * и на мгновение окружён золотым сиянием. Тайное открытие — сияние сильнее и дольше.
+ */
+.board-item.is-discovery .medal__figure {
+  animation: develop 760ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both;
+}
+
+.board-item.is-discovery .medal::before {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 232 160 / 0.9), rgb(240 200 110 / 0.35) 50%, transparent);
+  animation: aura 1500ms ease-out both;
+}
+
+.board-item.is-discovery .board-item__name {
+  animation: name-in 500ms ease-out 450ms both;
+}
+
+.board-item.is-discovery.is-secret .medal::before {
+  inset: -70%;
+  animation-duration: 2200ms;
+}
+
+@keyframes develop {
+  0% { opacity: 0; transform: scale(0.55); filter: blur(6px) brightness(2.4) sepia(0.6); }
+  45% { opacity: 1; transform: scale(1.1); filter: blur(1px) brightness(1.5) sepia(0.25); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes aura {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+@keyframes name-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Нет рецепта: элементы вздрагивают и на миг тускнеют */
+.board-item.is-rejected .medal__figure {
+  animation: shake 380ms ease-in-out;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px) rotate(-4deg); }
-  40% { transform: translateX(5px) rotate(3deg); }
+  0%, 100% { transform: translateX(0); filter: none; }
+  20% { transform: translateX(-6px) rotate(-4deg); filter: saturate(0.4) brightness(0.85); }
+  40% { transform: translateX(5px) rotate(3deg); filter: saturate(0.5) brightness(0.9); }
   60% { transform: translateX(-4px); }
   80% { transform: translateX(2px); }
+}
+
+/*
+ * ----- Реакция соединения -----
+ * Короткая вспышка над местом соединения; не перехватывает нажатия и убирается сама.
+ */
+.reaction {
+  position: absolute;
+  z-index: 1500;
+  width: calc(var(--item-size) * 2.8);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.reaction__flash,
+.reaction__ring,
+.reaction__mote {
+  position: absolute;
+}
+
+.reaction__flash {
+  inset: 12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 246 214 / 0.95), rgb(246 206 120 / 0.55) 45%, transparent);
+  animation: flash 620ms ease-out both;
+}
+
+.reaction__ring {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: ring-spread 900ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.reaction__ring circle,
+.reaction__ring path {
+  fill: none;
+  stroke: #b8883a;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 320;
+  stroke-dashoffset: 320;
+  animation: ring-draw 700ms ease-out forwards;
+}
+
+.reaction__mote {
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #fbe3a0;
+  box-shadow: 0 0 6px 2px rgb(246 200 100 / 0.7);
+  animation: mote 820ms cubic-bezier(0.15, 0.7, 0.3, 1) var(--delay, 0ms) both;
+}
+
+/* Тайное открытие: начертанный знак медленно поворачивается, искр больше */
+.reaction--secret .reaction__ring {
+  animation: ring-spread 1400ms cubic-bezier(0.2, 0.7, 0.3, 1) both, sigil-turn 1400ms linear both;
+}
+
+.reaction--secret .reaction__flash {
+  animation-duration: 900ms;
+}
+
+/* Известный результат: короткий чернильный дымок, без золота */
+.reaction--known .reaction__flash {
+  inset: 22%;
+  background: radial-gradient(closest-side, rgb(110 84 60 / 0.4), rgb(110 84 60 / 0.15) 55%, transparent);
+  animation: puff 520ms ease-out both;
+}
+
+@keyframes flash {
+  0% { opacity: 0; transform: scale(0.3); }
+  30% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
+@keyframes puff {
+  0% { opacity: 0; transform: scale(0.4); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+@keyframes ring-spread {
+  0% { opacity: 0; transform: scale(0.55); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+@keyframes ring-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes sigil-turn {
+  from { rotate: -20deg; }
+  to { rotate: 25deg; }
+}
+
+@keyframes mote {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--dx) * var(--item-size)), calc(var(--dy) * var(--item-size))) scale(0.3); }
 }
 
 /* Подпись под столом: подсказки и описание выбранного элемента */
@@ -564,7 +821,11 @@
   pointer-events: auto;
 }
 
-/* ----- Медальон элемента ----- */
+/*
+ * ----- Изображение элемента -----
+ * Рисунок лежит прямо на странице. Тень — отдельный слой: при переносе рисунок поднимается,
+ * а тень остаётся на бумаге и смещается от света (свет сверху слева).
+ */
 .medal {
   --medal-size: 56px;
   position: relative;
@@ -572,16 +833,45 @@
   flex: 0 0 auto;
   width: var(--medal-size);
   height: var(--medal-size);
-  border-radius: 50%;
 }
 
-.medal > .art {
+.medal__shadow {
   position: absolute;
-  inset: 0;
+  left: 20%;
+  right: 16%;
+  bottom: 3%;
+  height: 13%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(60 38 18 / 0.42), rgb(60 38 18 / 0.12) 70%, transparent);
+  transition: transform 180ms ease, opacity 180ms ease;
 }
 
 .medal > .medal__figure {
-  inset: 10%;
+  position: absolute;
+  inset: 0;
+  transition: transform 180ms ease;
+}
+
+/* Рисунки новой серии крупнее: у них свои поля и собственная тень на бумаге */
+.medal[data-art='painting'] > .medal__figure {
+  inset: -7%;
+}
+
+.medal[data-art='painting'] .medal__shadow {
+  opacity: 0.5;
+}
+
+.medal__figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+/* Прежние рисунки-эскизы: тушь на бумаге, чуть меньше, чтобы совпадать по весу с новыми */
+.medal[data-art='sketch'] > .medal__figure {
+  inset: 9%;
 }
 
 /* На мелких рисунках «дрожание пера» незаметно, а перерисовка фильтра дорога при перетаскивании */
@@ -605,9 +895,6 @@
 .drag-ghost .medal {
   --medal-size: var(--item-size, 60px);
   margin: calc(var(--medal-size) / -2) 0 0 calc(var(--medal-size) / -2);
-  border-radius: 50%;
-  background: rgb(250 241 220 / 0.95);
-  box-shadow: 0 10px 18px rgb(60 40 20 / 0.35);
 }
 
 /*
@@ -844,18 +1131,26 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .board-item.is-merging {
+  .board-item.is-merging,
+  .board-item.is-merging .medal__figure,
+  .medal__shadow,
+  .medal > .medal__figure {
     transition: none;
   }
 
-  .board-item .medal,
-  .board-item.is-born .medal,
-  .board-item.is-placed .medal,
-  .board-item.is-discovery .medal,
-  .board-item.is-rejected .medal,
-  .catalog-item.is-suggested .medal,
+  .board-item .medal::before,
+  .board-item .medal::after,
+  .board-item .medal__figure,
+  .board-item .medal__shadow,
+  .board-item__name,
+  .catalog-item.is-suggested .medal::before,
   .catalog[data-expanded],
   .toast {
     animation: none;
+  }
+
+  /* Без движения сияние открытия не показывается: оно не исчезло бы само */
+  .board-item.is-discovery .medal::before {
+    display: none;
   }
 }

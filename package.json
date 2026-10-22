@@ -20,7 +20,10 @@
     "pack": "npm run build && tsx tools/pack-yandex.ts",
     "verify:zip": "tsx tools/verify-zip.ts",
     "check": "npm run lint && npm run typecheck && npm run content:check && npm run test && npm run pack && npm run test:e2e",
-    "content:check": "tsx tools/content-check.ts"
+    "content:check": "tsx tools/content-check.ts",
+    "art": "tsx tools/art/render.ts",
+    "art:textures": "tsx tools/art/textures.ts",
+    "audio": "tsx tools/audio/synth.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

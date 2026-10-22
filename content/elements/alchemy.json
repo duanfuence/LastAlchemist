@@ -7,5 +7,5 @@
   { "id": "gunpowder", "category": "alchemy", "art": "elements/gunpowder.svg" },
   { "id": "explosion", "category": "alchemy", "art": "elements/explosion.svg", "final": true },
   { "id": "hourglass", "category": "alchemy", "art": "elements/hourglass.svg", "final": true },
-  { "id": "homunculus", "category": "alchemy", "art": "elements/homunculus.svg", "secret": true, "final": true }
+  { "id": "homunculus", "category": "alchemy", "art": "elements/homunculus.webp", "secret": true, "final": true }
 ]

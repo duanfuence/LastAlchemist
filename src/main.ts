@@ -13,6 +13,7 @@ import './ui/styles/book.css';
 import './ui/styles/screens.css';
 import './ui/styles/lab.css';
 
+import { createSoundSystem } from './audio';
 import { loadContent } from './content';
 import { GameSession } from './game/GameSession';
 import { createTranslator, resolveLocale } from './i18n';
@@ -78,8 +79,18 @@ async function bootstrap(): Promise<void> {
     if (document.hidden) flush();
   });
 
+  // Звук: контекст создаётся только жестом игрока; до этого игра молчит
+  const sound = createSoundSystem();
+  const unlockSound = (): void => {
+    void sound.unlock();
+  };
+  for (const type of ['pointerdown', 'keydown', 'touchend', 'click']) {
+    document.addEventListener(type, unlockSound, { capture: true });
+  }
+
   book = new Book(i18n, {
-    createLab: (onExit) => new LabView({ session, i18n, onExit }),
+    createLab: (onExit) => new LabView({ session, i18n, sound, onExit }),
+    sound,
   });
   root.replaceChildren(book.root);
   book.show('title');
@@ -89,12 +100,15 @@ async function bootstrap(): Promise<void> {
   const platform = await platformReady;
   platform.onPauseChange((paused) => {
     document.documentElement.toggleAttribute('data-paused', paused);
+    sound.setPaused(paused);
   });
   document.documentElement.dataset['platform'] = platform.kind;
 
   await loadFonts();
   platform.gameReady();
   document.documentElement.dataset['ready'] = 'true';
+  // Звуки скачиваются после готовности игры, чтобы не мешать первой загрузке
+  sound.prefetch();
 }
 
 bootstrap().catch((error: unknown) => {

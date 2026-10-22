@@ -6,13 +6,16 @@ import {
   type BoardItem,
 } from '../../core/board/board';
 import type { RecipeDef } from '../../core/content/types';
+import type { SoundSystem } from '../../audio';
 import type { CombineReport, CombineSource, GameSession } from '../../game/GameSession';
 import type { Translator } from '../../i18n';
 import { uiArt } from '../art';
 import { el } from '../dom';
 import { ScrollEdgeWatcher } from '../scrollEdges';
+import { SoundControl } from '../SoundControl';
 import { DragController, type PointerPoint } from './DragController';
 import { medal } from './medal';
+import { playReaction } from './reaction';
 import { Toast } from './Toast';
 
 type DragSource = { kind: 'catalog'; elementId: string } | { kind: 'board'; uid: number };
@@ -20,11 +23,15 @@ type DragSource = { kind: 'catalog'; elementId: string } | { kind: 'board'; uid:
 export interface LabDeps {
   session: GameSession;
   i18n: Translator;
+  sound: SoundSystem;
   onExit(): void;
 }
 
-/** Длительность исчезновения соединяемых элементов (согласована с CSS). */
-const MERGE_MS = 200;
+/** Задержка звука открытия после звука реакции (мс): сначала соединение, затем результат. */
+const DISCOVERY_SOUND_DELAY_MS = 160;
+
+/** Длительность растворения соединяемых элементов (согласована с CSS). */
+const MERGE_MS = 300;
 /** Удержание пальца, после которого элемент из вкладного листа можно нести на стол. */
 const HOLD_TO_DRAG_MS = 280;
 /** Сколько держится сообщение о неудаче или открытии, прежде чем вернуть подсказку. */
@@ -46,6 +53,7 @@ export class LabView {
 
   private readonly session: GameSession;
   private readonly i18n: Translator;
+  private readonly sound: SoundSystem;
   private readonly board: HTMLElement;
   private readonly itemsLayer: HTMLElement;
   private readonly catalog: HTMLElement;
@@ -75,6 +83,7 @@ export class LabView {
   constructor(deps: LabDeps) {
     this.session = deps.session;
     this.i18n = deps.i18n;
+    this.sound = deps.sound;
     const t = this.i18n.t.bind(this.i18n);
 
     // Верхняя панель на столе, над книгой
@@ -106,6 +115,7 @@ export class LabView {
         this.counter,
         this.toast.root,
       ]),
+      new SoundControl(this.sound, this.i18n).root,
       clear,
     ]);
 
@@ -465,6 +475,7 @@ export class LabView {
       const spot = clampToBoard(at.x, at.y, this.geometry(true));
       this.session.move(source.uid, spot.x, spot.y);
       this.renderBoard();
+      this.sound.play('place');
       return;
     }
 
@@ -506,6 +517,7 @@ export class LabView {
     this.useFresh(elementId);
     this.renderBoard();
     this.animate(this.itemNodes.get(item.uid), 'is-placed');
+    this.sound.play('place');
     this.showHint();
   }
 
@@ -514,6 +526,9 @@ export class LabView {
    * при неудаче он остаётся рядом с целью, не перекрывая её.
    */
   private combine(first: CombineSource, second: CombineSource, firstDrop?: { x: number; y: number }): void {
+    // Место соединения запоминаем до хода: после удачного соединения участников на столе уже нет
+    const target = 'uid' in second ? this.session.board.get(second.uid) : undefined;
+    const spot = target ? { x: target.x, y: target.y } : firstDrop;
     const report = this.session.combine(first, second);
     this.select(null);
     if (!report) return;
@@ -548,11 +563,20 @@ export class LabView {
     // Новое открытие должно быть видно в начале ленты и списка
     if (outcome.kind === 'discovery') this.catalogScroll.scrollTo({ left: 0 });
     const resultNode = report.result ? this.itemNodes.get(report.result.uid) : undefined;
+    const secret = outcome.kind === 'discovery' && this.session.content.elements.get(outcome.element)?.secret === true;
+    resultNode?.classList.toggle('is-secret', secret);
     this.animate(resultNode, outcome.kind === 'discovery' ? 'is-discovery' : 'is-born');
     if (outcome.kind === 'discovery') this.animate(this.counter, 'is-bumped');
+    // Реакция над местом соединения: золото — только для нового знания
+    const at = report.result ?? spot;
+    if (at) playReaction(this.itemsLayer, at, outcome.kind !== 'discovery' ? 'known' : secret ? 'secret' : 'discovery');
+    this.sound.play('react');
+    if (outcome.kind === 'discovery') {
+      setTimeout(() => this.sound.play(secret ? 'secret' : 'discover'), DISCOVERY_SOUND_DELAY_MS);
+    }
 
     const labels = {
-      discovery: ['lab.discovery', 'lab.discovery'],
+      discovery: ['lab.discovery', 'lab.discoveryShort'],
       'new-recipe': ['lab.newRecipe', 'lab.newRecipeShort'],
       known: ['lab.known', 'lab.knownShort'],
     } as const;
@@ -591,6 +615,7 @@ export class LabView {
     for (const source of [first, second]) {
       if ('uid' in source) this.animate(this.itemNodes.get(source.uid), 'is-rejected');
     }
+    this.sound.play('fail');
     const name = (id: string): string => this.i18n.element(id).name;
     this.flashMessage(this.i18n.t('lab.noRecipe', { first: name(report.first), second: name(report.second) }));
   }

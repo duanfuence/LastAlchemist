@@ -47,7 +47,7 @@ export function assembleContent(files: RawContentFiles): AssembleResult {
         return error(`${where}: некорректный id ${JSON.stringify(raw.id)} (латиница в нижнем регистре, цифры, «_»)`);
       }
       if (typeof raw.category !== 'string' || raw.category === '') return error(`${where} "${raw.id}": нет категории`);
-      if (typeof raw.art !== 'string' || !/^[\w/-]+\.svg$/.test(raw.art)) {
+      if (typeof raw.art !== 'string' || !/^[\w/-]+\.(svg|webp)$/.test(raw.art)) {
         return error(`${where} "${raw.id}": некорректный путь к иллюстрации ${JSON.stringify(raw.art)}`);
       }
       if (elements.has(raw.id)) return error(`Дубликат элемента "${raw.id}" (${where})`);

@@ -294,4 +294,15 @@ test.describe('страж ошибок загрузки', () => {
     await page.goto('/');
     await waitForReady(page);
   });
+
+  test('прерванная загрузка без перехода страницы роняет тест', async ({ page }) => {
+    test.fail();
+    // Прощаются только запросы, прерванные навигацией самой страницы; здесь навигации нет
+    await page.route('**/*.mp3', (route) => route.abort('aborted'));
+    let failed = 0;
+    page.on('requestfailed', () => (failed += 1));
+    await page.goto('/');
+    await waitForReady(page);
+    await expect.poll(() => failed).toBeGreaterThan(0);
+  });
 });

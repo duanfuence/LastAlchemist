@@ -29,9 +29,25 @@ export const test = base.extend<{ pageProblems: string[] }>({
         problems.push(`console.error: ${message.text()} ${url}`.trim());
       });
       page.on('pageerror', (error) => problems.push(`исключение: ${error.message}`));
+      // Запросы, прерванные переходом самой страницы (reload, goto), — не сбой ресурса:
+      // браузер отменяет всё незавершённое при навигации. Отмена приходит раньше, чем новая
+      // страница зафиксирована, поэтому решение принимается в конце теста: прерванный запрос
+      // прощается, только если после его старта действительно была навигация.
+      let navigation = 0;
+      const startedAt = new WeakMap<object, number>();
+      const aborted: { url: string; started: number }[] = [];
+      page.on('framenavigated', (frame) => {
+        if (frame === page.mainFrame()) navigation += 1;
+      });
+      page.on('request', (request) => startedAt.set(request, navigation));
       page.on('requestfailed', (request) => {
         if (isExpectedLoadFailure(request.url())) return;
-        problems.push(`сбой загрузки: ${request.url()} (${request.failure()?.errorText ?? 'нет описания'})`);
+        const errorText = request.failure()?.errorText ?? 'нет описания';
+        if (errorText === 'net::ERR_ABORTED') {
+          aborted.push({ url: request.url(), started: startedAt.get(request) ?? navigation });
+          return;
+        }
+        problems.push(`сбой загрузки: ${request.url()} (${errorText})`);
       });
       page.on('response', (response) => {
         if (isExpectedLoadFailure(response.url())) return;
@@ -49,6 +65,9 @@ export const test = base.extend<{ pageProblems: string[] }>({
 
       await use(problems);
 
+      for (const request of aborted) {
+        if (request.started >= navigation) problems.push(`сбой загрузки: ${request.url} (net::ERR_ABORTED)`);
+      }
       expect(problems, 'ошибки консоли и загрузки ресурсов').toEqual([]);
     },
     { auto: true },

@@ -3,7 +3,7 @@
   { "id": "mud", "category": "matter", "art": "elements/mud.svg" },
   { "id": "lava", "category": "matter", "art": "elements/lava.svg" },
   { "id": "stone", "category": "matter", "art": "elements/stone.svg" },
-  { "id": "dust", "category": "matter", "art": "elements/dust.svg" },
+  { "id": "dust", "category": "matter", "art": "elements/dust.webp" },
   { "id": "sand", "category": "matter", "art": "elements/sand.svg" },
   { "id": "metal", "category": "matter", "art": "elements/metal.svg" },
   { "id": "glass", "category": "matter", "art": "elements/glass.svg" },

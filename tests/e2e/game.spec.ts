@@ -154,6 +154,17 @@ test.describe('сенсорное управление', () => {
     await expect(boardItems(page, 'brick')).not.toHaveClass(/is-selected/);
   });
 
+  test('касание сразу после переноса пальцем не теряется', async ({ page }, testInfo) => {
+    test.skip(!touchOnly(testInfo), 'касания проверяются на сенсорных профилях');
+    await openLab(page, testInfo);
+    // Резкий бросок: без защиты браузер запускал инерцию прокрутки ленты, и следующее касание гасило её
+    await touchDrag(page, page.getByTestId('catalog-water'), await boardPoint(page, 0.5, 0.3));
+    await press(boardItems(page, 'water'), testInfo);
+    await expect(boardItems(page, 'water')).toHaveClass(/is-selected/);
+    await press(page.getByTestId('catalog-fire'), testInfo);
+    await expect(boardItems(page, 'steam')).toHaveCount(1);
+  });
+
   test('перетаскивание пальцем из ленты на стол и на другой элемент', async ({ page }, testInfo) => {
     test.skip(!touchOnly(testInfo), 'касания проверяются на сенсорных профилях');
     await openLab(page, testInfo);

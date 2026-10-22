@@ -7,7 +7,7 @@ export interface ElementDef {
   /** Стабильный идентификатор: латиница, цифры, «_». Не меняется после выпуска — на него ссылаются сохранения. */
   readonly id: string;
   readonly category: string;
-  /** Путь к иллюстрации относительно каталога assets/, например "elements/water.svg". */
+  /** Путь к иллюстрации относительно каталога assets/: "elements/water.webp" (рисунок новой серии) или "elements/steam.svg" (прежний эскиз). */
   readonly art: string;
   /** Начальный элемент: доступен с первого запуска, не создаётся рецептами. */
   readonly starting: boolean;

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <g class="art-ink" filter="url(#ink-wobble)">
-    <circle cx="64" cy="64" r="60" class="art-line"/>
-    <circle cx="64" cy="64" r="55" class="art-line-thin" stroke-dasharray="1.2 3.6"/>
-  </g>
-</svg>

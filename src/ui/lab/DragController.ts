@@ -154,6 +154,11 @@ export class DragController<S> {
       } catch {
         // Указатель уже отпущен — перетаскивание завершится в up/cancel
       }
+      // Палец несёт элемент: жест больше не прокрутка. Иначе браузер после броска запускает
+      // инерцию прокрутки, и следующее касание уходит на её остановку — нажатие теряется.
+      if (event.pointerType === 'touch') {
+        document.addEventListener('touchmove', this.blockTouchScroll, { passive: false });
+      }
       this.callbacks.onStart(active.source, this.point(event, active));
     }
     event.preventDefault();

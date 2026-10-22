@@ -7,6 +7,7 @@ export interface MiniElement {
   secret?: boolean;
   final?: boolean;
   category?: string;
+  art?: string;
 }
 
 /** Небольшая база для тестов. По умолчанию — четыре стихии и пара рецептов. */

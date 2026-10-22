@@ -1,4 +1,4 @@
-/* Стол и страница книги */
+/* Стол алхимика: тёмное дерево, тёплый свет свечи, затемнённые края */
 .desk {
   --desk-gap: clamp(12px, 2.6vmin, 32px);
   position: fixed;
@@ -7,6 +7,10 @@
   place-items: center;
   padding: max(var(--desk-gap), env(safe-area-inset-top)) max(var(--desk-gap), env(safe-area-inset-right))
     max(var(--desk-gap), env(safe-area-inset-bottom)) max(var(--desk-gap), env(safe-area-inset-left));
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 35%, rgb(10 6 4 / 0.7) 100%),
+    url('../../../assets/textures/wood.webp') center / 1024px,
+    var(--desk);
 }
 
 /* Тёплый отсвет свечи на столе */
@@ -15,7 +19,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 35%, rgb(217 182 101 / 0.16), transparent 60%);
+  background: radial-gradient(circle at 50% 35%, rgb(255 190 110 / 0.16), transparent 60%);
   animation: candle 5.5s ease-in-out infinite alternate;
 }
 
@@ -27,10 +31,48 @@
 }
 
 /*
- * Страница. Две раскладки:
- * - одна страница — портретные и узкие экраны;
+ * Книга. Две раскладки:
+ * - одна страница — портретные и узкие экраны (корешок слева, обрез справа и снизу);
  * - разворот (две страницы с корешком) — горизонтальные экраны от 640 px.
+ *
+ * .book — переплёт: кожа обложки выступает из-под страниц на --cover,
+ * между ними видна толщина блока страниц (обрез).
  */
+.book {
+  --cover: clamp(6px, 1.3vmin, 13px);
+  --edge-light: #efe2c4;
+  --edge-dark: #c6ae86;
+  position: relative;
+  width: min(100%, 720px);
+  height: min(100%, 980px);
+  border-radius: 6px 12px 12px 6px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgb(255 220 180 / 0.14), transparent 60%),
+    linear-gradient(to right, rgb(0 0 0 / 0.35), transparent 4%),
+    url('../../../assets/textures/leather.webp') center / 512px,
+    #5a2a1c;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 220 180 / 0.12),
+    inset 0 2px 3px rgb(255 220 180 / 0.12),
+    inset 0 -3px 6px rgb(0 0 0 / 0.45),
+    0 2px 3px rgb(0 0 0 / 0.5),
+    0 22px 50px rgb(0 0 0 / 0.6);
+}
+
+/* Закладка-лента выглядывает из-под нижнего обреза */
+.book__ribbon {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(var(--cover) * -1 - 26px);
+  left: 70%;
+  width: 14px;
+  height: 52px;
+  background: linear-gradient(to right, #5c1c18, #8b2f28 45%, #6a221d);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
+  pointer-events: none;
+}
+
 .page {
   --corner: clamp(36px, 9.5vmin, 84px);
   --corner-offset: 5px;
@@ -41,61 +83,127 @@
    */
   --frame: calc(var(--corner) * 0.55 + var(--corner-offset) + 2px);
   --spine-gap: 0px;
-  position: relative;
-  width: min(100%, 720px);
-  height: min(100%, 980px);
-  border-radius: var(--radius-page);
+  /* Толщина блока страниц, видимая на обрезе */
+  --stack: clamp(3px, 0.8vmin, 7px);
+  position: absolute;
+  inset: var(--cover) calc(var(--cover) + var(--stack)) calc(var(--cover) + var(--stack)) var(--cover);
+  border-radius: 2px 5px 5px 2px;
   background-color: var(--parchment);
   background-image:
-    radial-gradient(ellipse at 50% 45%, var(--parchment-light) 0%, transparent 65%),
-    radial-gradient(circle at 12% 88%, rgb(140 100 50 / 0.18), transparent 22%),
-    radial-gradient(circle at 92% 8%, rgb(140 100 50 / 0.14), transparent 18%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.12 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    /* Освещение одной страницы: корешок слева уходит в тень, к обрезу страница чуть темнеет */
+    linear-gradient(to right, rgb(80 50 20 / 0.28), rgb(80 50 20 / 0.08) 3%, transparent 9%, transparent 85%, rgb(90 60 30 / 0.12)),
+    radial-gradient(ellipse at 55% 40%, rgb(255 250 235 / 0.4), transparent 70%),
+    url('../../../assets/textures/parchment.webp');
+  background-size: 100% 100%, 100% 100%, 1024px;
+  /* Обрез: тонкие слои страниц справа и снизу */
   box-shadow:
-    inset 0 0 60px rgb(120 84 40 / 0.45),
-    inset 0 0 12px rgb(90 60 30 / 0.35),
-    0 18px 50px rgb(0 0 0 / 0.55),
-    0 2px 6px rgb(0 0 0 / 0.4);
+    1px 1px 0 var(--edge-dark),
+    2px 2px 0 var(--edge-light),
+    3px 3px 0 var(--edge-dark),
+    4px 4px 0 var(--edge-light),
+    5px 5px 0 var(--edge-dark),
+    var(--stack) var(--stack) 0 #a88e66,
+    calc(var(--stack) + 1px) calc(var(--stack) + 2px) 4px rgb(0 0 0 / 0.45),
+    inset 0 0 40px rgb(120 84 40 / 0.32),
+    inset 0 0 6px rgb(90 60 30 / 0.3);
   overflow: hidden;
   isolation: isolate;
 }
 
 @media (orientation: landscape) and (min-width: 640px) {
-  .page {
-    --spine-gap: clamp(40px, 7vw, 120px);
+  .book {
     width: min(100%, 1400px);
     height: 100%;
     max-height: 940px;
+    border-radius: 12px;
   }
 
-  /* Корешок разворота */
+  .page {
+    --spine-gap: clamp(40px, 7vw, 120px);
+    inset: var(--cover) calc(var(--cover) + var(--stack)) calc(var(--cover) + var(--stack));
+    border-radius: 5px;
+    background-image:
+      /* Разворот: страницы изгибаются к корешку, там глубокая тень и узкий блик на изгибе */
+      linear-gradient(
+        to right,
+        rgb(90 60 30 / 0.14),
+        transparent 6%,
+        transparent 38%,
+        rgb(255 250 235 / 0.18) 44%,
+        rgb(80 50 20 / 0.16) 47.5%,
+        rgb(50 30 12 / 0.42) 50%,
+        rgb(80 50 20 / 0.16) 52.5%,
+        rgb(255 250 235 / 0.18) 56%,
+        transparent 62%,
+        transparent 94%,
+        rgb(90 60 30 / 0.14)
+      ),
+      radial-gradient(ellipse at 25% 40%, rgb(255 250 235 / 0.35), transparent 55%),
+      radial-gradient(ellipse at 75% 40%, rgb(255 250 235 / 0.35), transparent 55%),
+      url('../../../assets/textures/parchment.webp');
+    background-size: 100% 100%, 100% 100%, 100% 100%, 1024px;
+    /* Обрез с обеих сторон и снизу */
+    box-shadow:
+      0 1px 0 1px var(--edge-dark),
+      0 2px 0 2px var(--edge-light),
+      0 3px 0 3px var(--edge-dark),
+      0 4px 0 4px var(--edge-light),
+      0 5px 0 5px var(--edge-dark),
+      0 var(--stack) 0 var(--stack) #a88e66,
+      0 calc(var(--stack) + 2px) 5px var(--stack) rgb(0 0 0 / 0.4),
+      inset 0 0 40px rgb(120 84 40 / 0.3),
+      inset 0 0 6px rgb(90 60 30 / 0.3);
+  }
+
+  /* Корешок: сгиб, в который уходят обе страницы, и стежки переплёта у краёв */
   .page::after {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
     left: 50%;
-    width: clamp(28px, 4vw, 56px);
+    width: 3px;
     transform: translateX(-50%);
     pointer-events: none;
     z-index: 1;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgb(110 78 40 / 0.14) 35%,
-      rgb(70 48 26 / 0.32) 50%,
-      rgb(110 78 40 / 0.14) 65%,
-      transparent
-    );
+    background:
+      linear-gradient(to bottom, rgb(60 38 18 / 0.7) 0 10px, transparent 10px calc(100% - 10px), rgb(60 38 18 / 0.7) calc(100% - 10px)),
+      rgb(70 45 22 / 0.25);
+  }
+
+  .book__ribbon {
+    left: calc(50% + 18px);
   }
 }
 
 /* На больших экранах разворот не растягивается шире книжных пропорций */
 @media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) {
-  .page {
+  .book {
     aspect-ratio: 1.6;
     width: auto;
     max-width: min(100%, 1400px);
+  }
+}
+
+/* Невысокий разворот (телефон боком): каждый пиксель высоты — столу; переплёт тоньше, закладки нет */
+@media (orientation: landscape) and (max-height: 540px) {
+  .book {
+    --cover: 4px;
+  }
+
+  .page {
+    --stack: 2px;
+  }
+
+  .book__ribbon {
+    display: none;
+  }
+}
+
+/* Совсем низкий экран (≈360 px): поля стола вокруг книги минимальны */
+@media (orientation: landscape) and (max-height: 420px) {
+  .desk {
+    --desk-gap: 6px;
   }
 }
 
@@ -105,12 +213,91 @@
   aspect-ratio: 1;
   pointer-events: none;
   z-index: 1;
+  /* Уголки — тонкая гравюра выцветшими чернилами, а не главный рисунок страницы */
+  opacity: 0.72;
 }
 
 .page__corner--tl { top: var(--corner-offset); left: var(--corner-offset); }
 .page__corner--tr { top: var(--corner-offset); right: var(--corner-offset); transform: scaleX(-1); }
 .page__corner--bl { bottom: var(--corner-offset); left: var(--corner-offset); transform: scaleY(-1); }
 .page__corner--br { bottom: var(--corner-offset); right: var(--corner-offset); transform: scale(-1, -1); }
+
+/*
+ * ----- Закрытая книга: титул -----
+ * Страница становится кожаной обложкой с золотым тиснением: рамка из двух золотых линий,
+ * золотые угловые накладки, вытисненное название. Обрез и закладка не видны.
+ */
+.book[data-page='title'] {
+  border-radius: 8px 14px 14px 8px;
+}
+
+.book[data-page='title'] .book__ribbon {
+  display: none;
+}
+
+.book[data-page='title'] .page {
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 35% 25%, rgb(255 215 170 / 0.16), transparent 55%),
+    radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(0 0 0 / 0.38) 100%),
+    linear-gradient(to right, rgb(0 0 0 / 0.45), rgb(255 220 180 / 0.08) 2.5%, transparent 5%),
+    url('../../../assets/textures/leather.webp') center / 512px,
+    #5a2a1c;
+  box-shadow:
+    inset 0 2px 3px rgb(255 220 180 / 0.15),
+    inset 0 -4px 8px rgb(0 0 0 / 0.45);
+}
+
+/* Вытисненная золотом двойная рамка по полю обложки */
+.book[data-page='title'] .page::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--corner-offset) + 8px);
+  z-index: 1;
+  border: 4px double rgb(214 176 98 / 0.8);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgb(20 8 4 / 0.6), inset 0 1px 0 rgb(20 8 4 / 0.5);
+  pointer-events: none;
+}
+
+/* На обложке нет корешка-сгиба */
+.book[data-page='title'] .page::after {
+  display: none;
+}
+
+.book[data-page='title'] .page__corner {
+  opacity: 0.95;
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.55));
+}
+
+.book[data-page='title'] .page__corner .art-ink {
+  color: #d6b062;
+}
+
+/* Большой горизонтальный экран: закрытая книга — в книжных, а не альбомных пропорциях */
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) {
+  .book[data-page='title'] {
+    aspect-ratio: 0.74;
+  }
+}
+
+/* Раскрытие обложки: книга поворачивается вокруг корешка */
+.book[data-turn='open'] .page {
+  transform-origin: left center;
+  animation: cover-open calc(var(--duration-page) * 0.6) ease-in both;
+}
+
+@keyframes cover-open {
+  from { transform: perspective(1600px) rotateY(0); filter: brightness(1); }
+  to { transform: perspective(1600px) rotateY(-28deg); filter: brightness(0.75); opacity: 0.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book[data-turn='open'] .page {
+    animation: none;
+  }
+}
 
 /*
  * Область текста — окно внутри рамки. Прокручиваемое содержимое обрезается краем окна,

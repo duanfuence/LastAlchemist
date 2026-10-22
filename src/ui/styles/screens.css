@@ -34,16 +34,87 @@
   flex-shrink: 0;
 }
 
-.title-page__emblem .art-gold {
-  animation: ember 4s ease-in-out infinite alternate;
+/*
+ * ===== Обложка =====
+ * Титул — закрытая книга: тиснёные золотом название и эмблема на коже,
+ * рукописная пометка — на бумажном ярлычке, кнопка — сургучная печать.
+ */
+.book[data-page='title'] .title-page {
+  color: #e2c98f;
 }
 
-@keyframes ember {
-  from { fill: var(--gold); }
-  to { fill: var(--gold-light); }
+.book[data-page='title'] .title {
+  background: linear-gradient(180deg, #f8e7b0 0%, #ddb767 42%, #a2752a 56%, #e8c97f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  /* Тиснение: тень снизу, светлая кромка сверху */
+  filter: drop-shadow(0 1.5px 0 rgb(20 8 4 / 0.75)) drop-shadow(0 -1px 0 rgb(255 230 170 / 0.18));
 }
 
-/* ===== Разворот: горизонтальные экраны от 640 px ===== */
+.book[data-page='title'] .title::first-letter {
+  color: transparent;
+}
+
+.book[data-page='title'] .overline {
+  color: rgb(226 201 143 / 0.82);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.6);
+}
+
+.book[data-page='title'] .lead {
+  color: rgb(238 218 172 / 0.92);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.65);
+}
+
+/* Эмблема — слепое тиснение: вдавленная линия со светлой нижней кромкой */
+.book[data-page='title'] .title-page__emblem .art-ink {
+  color: #2e140c;
+}
+
+.book[data-page='title'] .title-page__emblem {
+  opacity: 0.85;
+  filter: drop-shadow(0 1px 0 rgb(255 215 170 / 0.22));
+}
+
+/* Разделитель под названием — золотое тиснение, как и само название */
+.book[data-page='title'] .divider .art-ink {
+  color: #d6b062;
+}
+
+.book[data-page='title'] .divider {
+  filter: drop-shadow(0 1.5px 0 rgb(20 8 4 / 0.7));
+}
+
+/* Центр эмблемы — гранатовая вставка */
+.book[data-page='title'] .title-page__emblem .art-gold {
+  fill: #8e2c26;
+  stroke: #d6b062;
+}
+
+.book[data-page='title'] .hand-note {
+  max-width: 100%;
+  padding: 0.15em 0.9em 0.3em;
+  white-space: nowrap;
+  border-radius: 2px;
+  background:
+    linear-gradient(rgb(255 250 235 / 0.25), transparent),
+    url('../../../assets/textures/parchment.webp') center / 512px,
+    var(--parchment);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.5), inset 0 0 10px rgb(120 84 40 / 0.35);
+  color: var(--burgundy);
+}
+
+.book[data-page='title'] .seal-button {
+  box-shadow:
+    inset 0 0 0 2px rgb(217 182 101 / 0.7),
+    inset 0 0 0 5px rgb(110 42 38 / 0.6),
+    inset 0 -3px 6px rgb(0 0 0 / 0.4),
+    0 4px 10px rgb(0 0 0 / 0.55);
+}
+
+/* ===== Разворот: горизонтальные экраны от 640 px =====
+ * Обложка в книжных пропорциях (высокий экран) — одна колонка; на телефоне боком — две. */
 @media (orientation: landscape) and (min-width: 640px) {
   .title-page {
     display: grid;
@@ -105,5 +176,33 @@
 
   .overline {
     letter-spacing: 0.08em;
+  }
+}
+
+/* Высокий горизонтальный экран: обложка узкая, как у закрытой книги, — титул в одну колонку */
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) {
+  .book[data-page='title'] .title-page {
+    display: flex;
+    gap: clamp(10px, 2dvh, 30px);
+  }
+
+  .book[data-page='title'] .title-page__text {
+    gap: clamp(12px, 2.4dvh, 30px);
+  }
+
+  .book[data-page='title'] .title-page__emblem {
+    width: min(25dvh, 24vw, 290px);
+  }
+
+  .book[data-page='title'] .title-page .title {
+    font-size: clamp(1.9rem, 4.6vmin, 3.2rem);
+  }
+}
+
+/* Самый низкий горизонтальный экран: ярлычок с пометкой компактнее */
+@media (orientation: landscape) and (min-width: 640px) and (max-height: 420px) {
+  .book[data-page='title'] .hand-note {
+    padding: 0.05em 0.7em 0.15em;
+    font-size: 1rem;
   }
 }

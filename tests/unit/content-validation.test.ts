@@ -105,6 +105,15 @@ describe('validateContent', () => {
     expect(text).toMatch(/неизвестная категория "nowhere"/);
   });
 
+  it('принимает иллюстрации SVG и WebP, другие форматы — нет', () => {
+    const elements = BASIC_ELEMENTS.map((e) =>
+      e.id === 'water' ? { ...e, art: 'elements/water.webp' } : e.id === 'fire' ? { ...e, art: 'elements/fire.png' } : e,
+    );
+    const text = check(elements, BASIC_RECIPES).errors.join('\n');
+    expect(text).not.toMatch(/"water": некорректный путь/);
+    expect(text).toMatch(/"fire": некорректный путь к иллюстрации "elements\/fire\.png"/);
+  });
+
   it('проверяет тексты, категории и иллюстрации', () => {
     const assembled = assembleContent(makeFiles(BASIC_ELEMENTS, BASIC_RECIPES));
     const report = validateContent(assembled.pack, {
