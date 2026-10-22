@@ -1,4 +1,5 @@
 import {
+  CANDLE,
   HIGHLIGHT,
   INK,
   defs,
@@ -64,12 +65,12 @@ function grains(): Grain[] {
     let size = (0.35 + random() * random() * 1.5) * (front ? 1.15 : 0.75) * (0.7 + t * 0.5);
     let color: string;
     if (beam > 0.25 && random() < beam) {
-      color = random() < 0.5 ? HIGHLIGHT : '#f4dca2';
+      color = random() < 0.5 ? HIGHLIGHT : CANDLE;
       size *= 1.1;
     } else if (front) {
-      color = random() < 0.6 ? '#432c1a' : '#6e4e30';
+      color = random() < 0.6 ? '#22160d' : '#4a3424';
     } else {
-      color = random() < 0.5 ? '#86684a' : '#a3825c';
+      color = random() < 0.5 ? '#585a52' : '#77736a';
     }
     list.push({ x: gx, y: gy, r: size, color, front });
   }
@@ -78,7 +79,7 @@ function grains(): Grain[] {
     const t = random() * 0.35;
     const { x, y, r } = axis(t);
     const theta = random() * Math.PI * 2;
-    list.push({ x: x + Math.cos(theta) * r * 1.1, y: y + Math.sin(theta) * r * 0.25 - random() * 6, r: 1.4 + random() * 1.6, color: '#6b4d30', front: true });
+    list.push({ x: x + Math.cos(theta) * r * 1.1, y: y + Math.sin(theta) * r * 0.25 - random() * 6, r: 1.4 + random() * 1.6, color: '#3a2a1c', front: true });
   }
   return list;
 }
@@ -115,7 +116,7 @@ function swirls(front: boolean): string {
       points.push([x + Math.cos(theta) * r, y + Math.sin(theta) * r * 0.22]);
     }
     if (points.length > 3) {
-      strokes.push(inkPath(ink(points, { width: front ? 1.9 - band * 0.2 : 1.1, taper: [0.45, 0.5], shade: 0, seed: 40 + band + (front ? 0 : 10) }), front ? INK : '#6b5038', front ? 0.65 : 0.4));
+      strokes.push(inkPath(ink(points, { width: front ? 1.9 - band * 0.2 : 1.1, taper: [0.45, 0.5], shade: 0, seed: 40 + band + (front ? 0 : 10) }), front ? INK : '#3e4440', front ? 0.65 : 0.4));
     }
   }
   return strokes.join('');
@@ -127,7 +128,7 @@ function pebbles(): string {
   return items
     .map(([x, y, r], i) => {
       const shape: Pt[] = [[x - r, y], [x - r * 0.4, y - r * 0.8], [x + r * 0.6, y - r * 0.7], [x + r, y + r * 0.1], [x + r * 0.3, y + r * 0.7], [x - r * 0.6, y + r * 0.6]];
-      return `<path d="${smooth(shape)}" fill="${i % 2 ? '#7a6248' : '#94795a'}"/>` +
+      return `<path d="${smooth(shape)}" fill="${i % 2 ? '#4e4032' : '#5e5040'}"/>` +
         inkPath(ink(shape, { width: 1.1, closed: true, shade: 0.9, seed: 90 + i }));
     })
     .join('');
@@ -137,15 +138,15 @@ function render(): string {
   const heap: Pt[] = [[52, 224], [72, 210], [96, 199], [122, 193], [148, 195], [172, 203], [196, 214], [210, 225], [176, 231], [128, 233], [80, 231]];
   const extra = [
     linear('heap', [90, 192], [170, 234], [
-      [0, '#c9ab7c'],
-      [0.5, '#a08058'],
-      [1, '#6f5236'],
+      [0, '#7c6a4e'],
+      [0.5, '#4e3d2b'],
+      [1, '#241a11'],
     ]),
     linear('beam', [40, 30], [220, 200], [
-      [0, HIGHLIGHT, 0],
-      [0.25, HIGHLIGHT, 0.5],
-      [0.6, HIGHLIGHT, 0.3],
-      [1, HIGHLIGHT, 0],
+      [0, CANDLE, 0],
+      [0.25, CANDLE, 0.38],
+      [0.6, CANDLE, 0.2],
+      [1, CANDLE, 0],
     ]),
   ].join('');
   const groups = grainPaths(grains());
@@ -159,19 +160,19 @@ function render(): string {
     const cx = x + Math.cos(theta) * r * 0.55;
     const cy = y + Math.sin(theta) * r * 0.15;
     const rx = r * (0.45 + puffRandom() * 0.3) + 6;
-    const color = puffRandom() < 0.5 ? '#9c7f5a' : '#b89c72';
-    return `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${(rx * 0.42).toFixed(1)}" fill="${color}" fill-opacity="${(0.34 - t * 0.14).toFixed(2)}" filter="url(#wash)"/>`;
+    const color = puffRandom() < 0.5 ? '#5e5244' : '#6f685a';
+    return `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${(rx * 0.42).toFixed(1)}" fill="${color}" fill-opacity="${(0.24 - t * 0.1).toFixed(2)}" filter="url(#blur-4)"/>`;
   }).join('');
   // Тень вихря внизу справа
   const shade = [0.2, 0.5, 0.8]
     .map((t) => {
       const { x, y, r } = axis(t);
-      return `<ellipse cx="${(x + r * 0.45).toFixed(1)}" cy="${(y + 4).toFixed(1)}" rx="${(r * 0.55).toFixed(1)}" ry="${(r * 0.18 + 5).toFixed(1)}" fill="#6a5238" fill-opacity="0.28" filter="url(#wash-soft)"/>`;
+      return `<ellipse cx="${(x + r * 0.45).toFixed(1)}" cy="${(y + 4).toFixed(1)}" rx="${(r * 0.55).toFixed(1)}" ry="${(r * 0.18 + 5).toFixed(1)}" fill="#1f2e2c" fill-opacity="0.32" filter="url(#wash-soft)"/>`;
     })
     .join('');
 
   return svg(`${defs(extra)}
-  <ellipse cx="128" cy="230" rx="86" ry="9" fill="#5a442e" fill-opacity="0.3" filter="url(#blur-4)"/>
+  <ellipse cx="132" cy="231" rx="88" ry="9" fill="#120c08" fill-opacity="0.5" filter="url(#blur-4)"/>
   <!-- Горка сухой земли -->
   <path d="${smooth(heap)}" fill="url(#heap)" filter="url(#wash)"/>
   <clipPath id="heap-clip"><path d="${smooth(heap)}"/></clipPath>
@@ -180,7 +181,7 @@ function render(): string {
     bounds: [48, 188, 214, 236],
     density: (x) => 0.35 + Math.max(0, (x - 110) / 110) * 0.65,
     radius: (_x, _y, random) => 0.4 + random() * 0.9,
-    color: (x, _y, random) => (random() < (x - 60) / 160 ? '#4a321f' : '#e6cfa2'),
+    color: (x, _y, random) => (random() < (x - 60) / 160 ? '#1e140c' : '#a8936f'),
     seed: 31,
   })}</g>
   ${pebbles()}

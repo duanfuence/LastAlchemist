@@ -8,16 +8,22 @@
  *
  * Общие правила серии (одинаковы для всех элементов):
  * - холст 256×256, объект занимает примерно 200×220 и стоит на воображаемой поверхности;
- * - свет сверху слева (LIGHT), тени и утолщения линий — снизу справа;
- * - тушь — тёплая коричнево-чёрная (INK), блики — белила (HIGHLIGHT), золото — только у редкого.
+ * - светотень тёмной лаборатории: тёплый свет свечи сверху слева (LIGHT, CANDLE),
+ *   холодные серо-зелёные тени снизу справа (COLD, coldShade), утолщения линий — в тени;
+ * - на блестящих поверхностях отражается пламя свечи (candleReflection), а не окно;
+ * - тушь — почти чёрная коричневая (INK), золото — только у редкого и потускневшее.
  */
 
 export type Pt = readonly [number, number];
 
 export const SIZE = 256;
-export const INK = '#2a1b12';
-export const INK_SOFT = '#4a3424';
-export const HIGHLIGHT = '#fff8e6';
+export const INK = '#1c120b';
+export const INK_SOFT = '#3e2b1d';
+export const HIGHLIGHT = '#fff3dc';
+/** Тёплый свет свечи — единственный источник света в лаборатории. */
+export const CANDLE = '#ffe2b0';
+/** Холодный тон теней: сырой камень подземелья. */
+export const COLD = '#1d3634';
 /** Направление на источник света (сверху слева). */
 export const LIGHT: Pt = norm([-0.62, -0.78]);
 
@@ -299,6 +305,31 @@ export function ellipse(c: Pt, rx: number, ry: number, count = 24, from = 0, to 
     points.push([c[0] + Math.cos(a) * rx, c[1] + Math.sin(a) * ry]);
   }
   return points;
+}
+
+/**
+ * Холодная тень формы: от прозрачного у света к холодному тону в тени, внутри силуэта (clipId).
+ * Объединяет серию одной светотенью: тёплый свет свечи и холодный сумрак подземелья.
+ */
+export function coldShade(id: string, clipId: string, from: Pt, to: Pt, opacity = 0.55): string {
+  return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${f(from[0])}" y1="${f(from[1])}" x2="${f(to[0])}" y2="${f(to[1])}">
+      <stop offset="0" stop-color="${COLD}" stop-opacity="0"/><stop offset="0.55" stop-color="${COLD}" stop-opacity="${opacity * 0.4}"/><stop offset="1" stop-color="${COLD}" stop-opacity="${opacity}"/>
+    </linearGradient>
+    <rect x="0" y="0" width="${SIZE}" height="${SIZE}" fill="url(#${id})" clip-path="url(#${clipId})"/>`;
+}
+
+/** Отражение пламени свечи на блестящей поверхности: маленький язычок и тёплый ореол. */
+export function candleReflection(x: number, y: number, size: number, opacity = 1): string {
+  const flame: Pt[] = [
+    [x, y - size * 1.25],
+    [x + size * 0.42, y - size * 0.1],
+    [x + size * 0.3, y + size * 0.55],
+    [x, y + size * 0.7],
+    [x - size * 0.3, y + size * 0.55],
+    [x - size * 0.42, y - size * 0.1],
+  ];
+  return `<g opacity="${opacity}"><ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(size * 1.6)}" ry="${f(size * 1.9)}" fill="${CANDLE}" fill-opacity="0.35" filter="url(#blur-4)"/>
+    <path d="${smooth(flame)}" fill="${HIGHLIGHT}"/></g>`;
 }
 
 export interface ElementArt {

@@ -32,15 +32,45 @@ class FakeContext implements AudioContextLike {
   createGain() {
     return { gain: { value: 1 }, connect: () => undefined };
   }
+  /** Все запущенные источники: эффекты и музыка. */
+  sources: FakeSource[] = [];
   createBufferSource() {
-    const source = {
-      buffer: null as unknown,
+    const source: FakeSource = {
+      buffer: null,
       playbackRate: { value: 1 },
+      loop: false,
+      loopStart: 0,
+      loopEnd: 0,
+      offset: undefined,
+      stopped: false,
       connect: () => undefined,
-      start: () => this.started.push(source.buffer),
+      start: (_when?: number, offset?: number) => {
+        source.offset = offset;
+        this.started.push(source.buffer);
+        this.sources.push(source);
+      },
+      stop: () => {
+        source.stopped = true;
+      },
     };
     return source;
   }
+  get music(): FakeSource[] {
+    return this.sources.filter((source) => source.loop);
+  }
+}
+
+interface FakeSource {
+  buffer: unknown;
+  playbackRate: { value: number };
+  loop: boolean;
+  loopStart: number;
+  loopEnd: number;
+  offset: number | undefined;
+  stopped: boolean;
+  connect(target: unknown): unknown;
+  start(when?: number, offset?: number): void;
+  stop(when?: number): void;
 }
 
 class MemoryStorage {
@@ -77,8 +107,15 @@ describe('настройки звука', () => {
 
   it('повреждённые и выходящие за пределы значения исправляются', () => {
     expect(parseSoundSettings('{не json')).toEqual(DEFAULT_SOUND_SETTINGS);
-    expect(parseSoundSettings('{"muted":true,"volume":7}')).toEqual({ muted: true, volume: 1 });
-    expect(parseSoundSettings('{"muted":"да","volume":-1}')).toEqual({ muted: false, volume: 0 });
+    expect(parseSoundSettings('{"muted":true,"volume":7,"musicVolume":-2}')).toMatchObject({ muted: true, volume: 1, musicVolume: 0 });
+    expect(parseSoundSettings('{"muted":"да","volume":-1}')).toMatchObject({ muted: false, volume: 0 });
+  });
+
+  it('прежний формат { muted, volume } читается: громкость становится громкостью эффектов', () => {
+    expect(parseSoundSettings('{"muted":false,"volume":0.35}')).toEqual({
+      ...DEFAULT_SOUND_SETTINGS,
+      volume: 0.35,
+    });
   });
 });
 
@@ -142,9 +179,12 @@ describe('SoundSystem', () => {
     const { sound, storage } = setup();
     sound.setVolume(0.35);
     sound.setMuted(true);
-    expect(JSON.parse(storage.getItem(SOUND_SETTINGS_KEY) ?? '')).toEqual({ muted: true, volume: 0.35 });
+    sound.setMusicVolume(0.2);
+    sound.setEffectsMuted(true);
+    const expected = { muted: true, volume: 0.35, effectsMuted: true, musicMuted: false, musicVolume: 0.2 };
+    expect(JSON.parse(storage.getItem(SOUND_SETTINGS_KEY) ?? '')).toEqual(expected);
     const restored = new SoundSystem({ urls: {}, createContext: () => null, load: () => Promise.resolve(new ArrayBuffer(0)), storage });
-    expect(restored.settings).toEqual({ muted: true, volume: 0.35 });
+    expect(restored.settings).toEqual(expected);
   });
 
   it('недоступное хранилище не мешает менять настройки', () => {
@@ -173,5 +213,113 @@ describe('SoundSystem', () => {
     release(new ArrayBuffer(4));
     await loading;
     expect(context.started).toHaveLength(1);
+  });
+});
+
+const MUSIC = { url: 'music.mp3', loopStart: 0.5, loopEnd: 128.5 };
+
+describe('фоновая музыка', () => {
+  it('до первого жеста не загружается и не звучит', () => {
+    const loaded: string[] = [];
+    const { sound } = setup({ music: MUSIC, load: (url) => (loaded.push(url), Promise.resolve(new ArrayBuffer(8))) });
+    sound.prefetch();
+    expect(loaded).not.toContain('music.mp3');
+    expect(sound.musicPlaying).toBe(false);
+  });
+
+  it('после жеста играет одним бесконечным источником с бесшовным циклом', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    await sound.unlock();
+    expect(sound.musicPlaying).toBe(true);
+    expect(context.music).toHaveLength(1);
+    expect(context.music[0]).toMatchObject({ loop: true, loopStart: 0.5, loopEnd: 128.5, offset: 0.5 });
+    // Эффекты не перезапускают музыку
+    sound.play('place');
+    sound.play('discover');
+    expect(context.music).toHaveLength(1);
+    expect(context.music[0]!.stopped).toBe(false);
+  });
+
+  it('выключенная музыка не загружается вовсе', async () => {
+    const loaded: string[] = [];
+    const storage = new MemoryStorage();
+    storage.setItem(SOUND_SETTINGS_KEY, JSON.stringify({ musicMuted: true }));
+    const { sound } = setup({ music: MUSIC, storage, load: (url) => (loaded.push(url), Promise.resolve(new ArrayBuffer(8))) });
+    await sound.unlock();
+    expect(loaded).not.toContain('music.mp3');
+    expect(sound.musicPlaying).toBe(false);
+    // Эффекты при этом работают
+    expect(sound.play('place')).toBe(true);
+  });
+
+  it('выключение и включение музыки продолжает с того же места, а не с начала', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    await sound.unlock();
+    context.currentTime = 40;
+    sound.setMusicMuted(true);
+    expect(context.music[0]!.stopped).toBe(true);
+    expect(sound.musicPlaying).toBe(false);
+    context.currentTime = 60;
+    sound.setMusicMuted(false);
+    await Promise.resolve();
+    expect(context.music).toHaveLength(2);
+    expect(context.music[1]!.offset).toBeCloseTo(40.5);
+  });
+
+  it('позиция переходит через точку цикла', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    await sound.unlock();
+    context.currentTime = 130;
+    sound.setMuted(true);
+    sound.setMuted(false);
+    await Promise.resolve();
+    // 0,5 + 130 = 130,5 → после конца цикла (128,5) это 2,5
+    expect(context.music.at(-1)!.offset).toBeCloseTo(2.5);
+  });
+
+  it('музыку и эффекты можно выключать независимо', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    await sound.unlock();
+    sound.setEffectsMuted(true);
+    expect(sound.play('place')).toBe(false);
+    expect(sound.musicPlaying).toBe(true);
+    sound.setEffectsMuted(false);
+    sound.setMusicMuted(true);
+    expect(sound.play('place')).toBe(true);
+    expect(sound.musicPlaying).toBe(false);
+    sound.setMusicVolume(0);
+    sound.setMusicMuted(false);
+    await Promise.resolve();
+    expect(sound.musicPlaying).toBe(false);
+    expect(context.music).toHaveLength(1);
+  });
+
+  it('весь звук выключается одним переключателем', async () => {
+    const { sound } = setup({ music: MUSIC });
+    await sound.unlock();
+    sound.setMuted(true);
+    expect(sound.play('place')).toBe(false);
+    expect(sound.musicPlaying).toBe(false);
+  });
+
+  it('недоступный файл музыки не ломает эффекты', async () => {
+    const { sound } = setup({
+      music: MUSIC,
+      load: (url) => (url === 'music.mp3' ? Promise.reject(new Error('404')) : Promise.resolve(new ArrayBuffer(8))),
+    });
+    await expect(sound.unlock()).resolves.toBeUndefined();
+    expect(sound.musicUnavailable).toBe(true);
+    expect(sound.musicPlaying).toBe(false);
+    expect(sound.play('place')).toBe(true);
+  });
+
+  it('пауза площадки приостанавливает музыку, не останавливая её', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    await sound.unlock();
+    sound.setPaused(true);
+    expect(context.suspendCalls).toBe(1);
+    expect(context.music[0]!.stopped).toBe(false);
+    sound.setPaused(false);
+    expect(sound.musicPlaying).toBe(true);
   });
 });

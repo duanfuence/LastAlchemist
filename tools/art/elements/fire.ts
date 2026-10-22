@@ -21,7 +21,7 @@ import {
  * Свечение мягко ложится на страницу вокруг.
  */
 
-const RED_INK = '#5c1d0c';
+const RED_INK = '#3e1206';
 
 const OUTER: Pt[] = [
   [84, 214], [66, 176], [68, 142], [80, 116], [84, 88], [98, 108], [104, 92], [114, 66], [126, 44], [133, 18],
@@ -56,11 +56,11 @@ function log(from: Pt, to: Pt, radius: number, seed: number): string {
     .map((t, i) => {
       const cx = x0 + (x1 - x0) * t + nx * 0.4;
       const cy = y0 + (y1 - y0) * t + ny * 0.4;
-      return `<ellipse cx="${cx}" cy="${cy}" rx="${6 + i}" ry="2.4" transform="rotate(${(angle * 180) / Math.PI} ${cx} ${cy})" fill="#ff8a2a" fill-opacity="0.85" filter="url(#wash-soft)"/>`;
+      return `<ellipse cx="${cx}" cy="${cy}" rx="${6 + i}" ry="2.4" transform="rotate(${(angle * 180) / Math.PI} ${cx} ${cy})" fill="#ff7a1e" fill-opacity="0.9" filter="url(#wash-soft)"/>`;
     })
     .join('');
   // Торец со спилом: годичные кольца
-  const end = `<ellipse cx="${x0}" cy="${y0}" rx="${radius * 0.55}" ry="${radius}" transform="rotate(${(angle * 180) / Math.PI} ${x0} ${y0})" fill="#c79a66" filter="url(#wash)"/>` +
+  const end = `<ellipse cx="${x0}" cy="${y0}" rx="${radius * 0.55}" ry="${radius}" transform="rotate(${(angle * 180) / Math.PI} ${x0} ${y0})" fill="#6e4a2c" filter="url(#wash)"/>` +
     `<ellipse cx="${x0}" cy="${y0}" rx="${radius * 0.3}" ry="${radius * 0.55}" transform="rotate(${(angle * 180) / Math.PI} ${x0} ${y0})" fill="none" stroke="${INK}" stroke-opacity="0.55" stroke-width="1"/>`;
   return `<clipPath id="${id}"><path d="${smooth(body)}"/></clipPath>
     <path d="${smooth(body)}" fill="url(#bark)" filter="url(#wash)"/>
@@ -71,10 +71,8 @@ function log(from: Pt, to: Pt, radius: number, seed: number): string {
 
 function sparks(): string {
   const items: [Pt, number][] = [
-    [[98, 48], 2.2],
-    [[170, 36], 1.8],
-    [[154, 14], 1.4],
-    [[76, 76], 1.6],
+    [[98, 48], 2],
+    [[166, 30], 1.5],
   ];
   return items
     .map(([[x, y], r], i) => {
@@ -103,10 +101,10 @@ function contour(): string {
 function render(): string {
   const extra = [
     radial('flame-outer', [128, 170], 130, [
-      [0, '#f7a03e'],
-      [0.5, '#ec6a24'],
-      [0.85, '#d4441c'],
-      [1, '#b8301a'],
+      [0, '#f39236'],
+      [0.45, '#dc5418'],
+      [0.8, '#a92c10'],
+      [1, '#6e1a0a'],
     ]),
     radial('flame-middle', [128, 176], 100, [
       [0, '#ffd47a'],
@@ -119,14 +117,14 @@ function render(): string {
       [1, '#ffd36e'],
     ]),
     radial('fire-glow', [128, 150], 120, [
-      [0, '#ffb04a', 0.7],
-      [0.5, '#f59a3a', 0.3],
-      [1, '#f59a3a', 0],
+      [0, '#ff9a3c', 0.55],
+      [0.45, '#e86a24', 0.22],
+      [1, '#e86a24', 0],
     ]),
     linear('bark', [0, 190], [0, 236], [
-      [0, '#8c5530'],
-      [0.45, '#6a3d22'],
-      [1, '#3d2214'],
+      [0, '#4a2c1a'],
+      [0.45, '#2c1a10'],
+      [1, '#120a06'],
     ]),
     `<clipPath id="flame-clip"><path d="${smooth(OUTER)}"/></clipPath>`,
     `<mask id="flame-dark" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256"><rect width="256" height="256" fill="url(#flame-mask-grad)"/></mask>`,
@@ -147,7 +145,7 @@ function render(): string {
   return svg(`${defs(extra)}
   <!-- Свечение на странице -->
   <ellipse cx="128" cy="150" rx="110" ry="104" fill="url(#fire-glow)" filter="url(#glow)"/>
-  <ellipse cx="128" cy="214" rx="96" ry="18" fill="#ff9d42" fill-opacity="0.35" filter="url(#blur-4)"/>
+  <ellipse cx="128" cy="216" rx="88" ry="16" fill="#ff8a32" fill-opacity="0.3" filter="url(#blur-4)"/>
 
   <!-- Заднее полено, пламя, переднее полено поверх основания пламени -->
   ${log([196, 198], [80, 222], 13, 101)}

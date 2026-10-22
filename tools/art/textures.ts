@@ -75,11 +75,11 @@ function generate(job: TextureJob): string {
     const mid = fbm([24, 48], [1, 0.5]);
     const edge = fbm([16, 32], [1, 0.5]);
     // Пятна старины: неправильной формы, с более тёмной «линией прилива» по краю
-    const stains = Array.from({ length: 4 }, () => ({
+    const stains = Array.from({ length: 7 }, () => ({
       x: random() * size,
       y: random() * size,
-      r: 60 + random() * 120,
-      strength: 0.01 + random() * 0.012,
+      r: 50 + random() * 140,
+      strength: 0.014 + random() * 0.02,
     }));
     const wrapped = (d: number): number => {
       const a = Math.abs(d) % size;
@@ -99,14 +99,15 @@ function generate(job: TextureJob): string {
           if (shaped < 0.92) stain += st.strength * (0.3 + 0.9 * Math.pow(Math.max(0, shaped), 6));
           else if (shaped < 1.2) stain += st.strength * 0.95 * (1 - (shaped - 0.92) / 0.28) ** 2;
         }
-        const light = 1 + b * 0.13 + m * 0.04 + grain;
+        const light = 1 + b * 0.17 + m * 0.05 + grain;
         // Тёплый тон: тёмные места уходят в охру, светлые — в сливочный
         const warm = b * 0.06;
         const i = (y * size + x) * 4;
         // Пятно желтит бумагу: синий уходит сильнее красного
-        data[i] = 233 * light + warm * 30 - stain * 260;
-        data[i + 1] = 216 * light + warm * 10 - stain * 420;
-        data[i + 2] = 180 * light - warm * 20 - stain * 700;
+        // Старая бумага подземной библиотеки: темнее и желтее, чем свежий пергамент
+        data[i] = 214 * light + warm * 30 - stain * 260;
+        data[i + 1] = 195 * light + warm * 10 - stain * 420;
+        data[i + 2] = 156 * light - warm * 20 - stain * 700;
         data[i + 3] = 255;
       }
     }
@@ -114,12 +115,29 @@ function generate(job: TextureJob): string {
     const wrap = (draw: (dx: number, dy: number) => void): void => {
       for (const dx of [-size, 0, size]) for (const dy of [-size, 0, size]) draw(dx, dy);
     };
+    // Следы сырости: редкие холодные серо-зелёные скопления точек
+    for (let k = 0; k < 14; k += 1) {
+      const cx = random() * size;
+      const cy = random() * size;
+      const spread = 6 + random() * 18;
+      for (let j = 0; j < 26; j += 1) {
+        const px = cx + (random() - 0.5) * spread * 2;
+        const py = cy + (random() - 0.5) * spread * 2;
+        const r = 0.5 + random() * 1.4;
+        ctx.fillStyle = `rgba(60, 74, 58, ${0.05 + random() * 0.09})`;
+        wrap((dx, dy) => {
+          ctx.beginPath();
+          ctx.arc(px + dx, py + dy, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    }
     // Мелкие крапинки (фоксинг)
-    for (let k = 0; k < 160; k += 1) {
+    for (let k = 0; k < 320; k += 1) {
       const cx = random() * size;
       const cy = random() * size;
       const r = 0.6 + random() * 1.8;
-      ctx.fillStyle = `rgba(120, 78, 40, ${0.08 + random() * 0.14})`;
+      ctx.fillStyle = `rgba(110, 66, 32, ${0.08 + random() * 0.16})`;
       wrap((dx, dy) => {
         ctx.beginPath();
         ctx.arc(cx + dx, cy + dy, r, 0, Math.PI * 2);
@@ -135,7 +153,7 @@ function generate(job: TextureJob): string {
       const angle = random() * Math.PI * 2;
       const bend = (random() - 0.5) * 0.8;
       const dark = random() < 0.45;
-      ctx.strokeStyle = dark ? `rgba(140, 105, 60, ${0.06 + random() * 0.1})` : `rgba(255, 248, 228, ${0.12 + random() * 0.2})`;
+      ctx.strokeStyle = dark ? `rgba(110, 80, 45, ${0.08 + random() * 0.12})` : `rgba(245, 232, 200, ${0.1 + random() * 0.16})`;
       ctx.lineWidth = 0.5 + random() * 0.7;
       wrap((dx, dy) => {
         ctx.beginPath();
@@ -152,19 +170,20 @@ function generate(job: TextureJob): string {
   } else if (kind === 'leather') {
     const broad = fbm([4, 8], [1, 0.5]);
     const pebble = fbm([128, 256], [1, 0.6]);
-    const wear = fbm([12, 24], [1, 0.5]);
+    const wear = fbm([4, 8], [1, 0.4]);
     for (let y = 0; y < size; y += 1) {
       for (let x = 0; x < size; x += 1) {
         const b = broad(x, y) - 0.5;
         // Зерно кожи: светлые бугорки, тёмные впадины между ними
         const bump = Math.pow(pebble(x, y), 1.5) - 0.32;
         // Потёртости: светлее и глаже там, где кожу касались руки
-        const rub = Math.max(0, wear(x, y) - 0.6) * 0.6;
-        const light = 1 + b * 0.2 + bump * 0.3 * (1 - rub * 2) + rub + (random() - 0.5) * 0.05;
+        const rub = Math.max(0, wear(x, y) - 0.58) * 0.5;
+        const light = 1 + b * 0.24 + bump * 0.34 * (1 - rub * 2) + rub + (random() - 0.5) * 0.06;
         const i = (y * size + x) * 4;
-        data[i] = 92 * light;
-        data[i + 1] = 44 * light;
-        data[i + 2] = 30 * light;
+        // Почти чёрная кожа цвета запёкшейся крови; потёртости светлеют в коричневый
+        data[i] = 54 * light + rub * 40;
+        data[i + 1] = 25 * light + rub * 22;
+        data[i + 2] = 20 * light + rub * 12;
         data[i + 3] = 255;
       }
     }
@@ -182,9 +201,10 @@ function generate(job: TextureJob): string {
         const fine = streak((x * 0.04) % size, y);
         const light = 0.7 + rings * 0.12 + (fine - 0.5) * 0.4 + (random() - 0.5) * 0.04;
         const i = (y * size + x) * 4;
-        data[i] = 58 * light;
-        data[i + 1] = 40 * light;
-        data[i + 2] = 28 * light;
+        // Тёмный морёный дуб
+        data[i] = 34 * light;
+        data[i + 1] = 25 * light;
+        data[i + 2] = 19 * light;
         data[i + 3] = 255;
       }
     }

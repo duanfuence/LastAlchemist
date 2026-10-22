@@ -1,20 +1,25 @@
 /* Палитра и типографика дневника алхимика. Все цвета задаются здесь. */
 :root {
-  --desk: #1f1712;
-  --desk-glow: #3a2a1e;
-  --parchment: #ead9b8;
-  --parchment-light: #f3e7cc;
-  --parchment-shadow: #c9b088;
-  --ink: #3b2a1d;
-  --ink-soft: #5d4632;
-  --ink-faded: #8a7158;
-  /* Мелкие подписи: контраст не ниже 4,5:1 к пергаменту (измерено ≈ 5:1) */
-  --ink-muted: #6a5440;
-  --burgundy: #6e2a26;
-  --burgundy-dark: #4f1c19;
-  --moss: #4f5b39;
-  --gold: #b48a3c;
-  --gold-light: #d9b665;
+  --desk: #0b0907;
+  --desk-glow: #2a1a10;
+  --parchment: #d4c29c;
+  --parchment-light: #e2d2ae;
+  --parchment-shadow: #a68e68;
+  --ink: #1e150e;
+  --ink-soft: #3a2a1d;
+  --ink-faded: #6e5a44;
+  /* Мелкие подписи: контраст не ниже 4,5:1 к пергаменту */
+  --ink-muted: #4b3828;
+  --burgundy: #5e1b18;
+  --burgundy-dark: #3b0f0d;
+  --moss: #3c4a3a;
+  --gold: #a07d3c;
+  --gold-light: #cfa95e;
+  /* Холодные тона подземелья и старый металл */
+  --verdigris: #4d6b5f;
+  --cold-ink: #2c463d;
+  --copper: #8c5b37;
+  --copper-light: #c7915e;
 
   --wash-water: #8fa39a;
   --wash-fire: #c98a5a;

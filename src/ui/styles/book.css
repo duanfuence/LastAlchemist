@@ -1,4 +1,7 @@
-/* Стол алхимика: тёмное дерево, тёплый свет свечи, затемнённые края */
+/*
+ * Стол алхимика в тёмной каменной лаборатории. Единственный тёплый свет — свеча сверху слева
+ * (за пределами экрана); тени холодные, серо-зелёные; края пространства уходят во тьму.
+ */
 .desk {
   --desk-gap: clamp(12px, 2.6vmin, 32px);
   position: fixed;
@@ -8,7 +11,9 @@
   padding: max(var(--desk-gap), env(safe-area-inset-top)) max(var(--desk-gap), env(safe-area-inset-right))
     max(var(--desk-gap), env(safe-area-inset-bottom)) max(var(--desk-gap), env(safe-area-inset-left));
   background:
-    radial-gradient(ellipse at 50% 45%, transparent 35%, rgb(10 6 4 / 0.7) 100%),
+    radial-gradient(ellipse 75% 65% at 28% 18%, rgb(255 166 88 / 0.14), transparent 70%),
+    radial-gradient(ellipse at 42% 38%, transparent 22%, rgb(4 3 2 / 0.88) 92%),
+    linear-gradient(155deg, transparent 45%, rgb(22 38 40 / 0.4)),
     url('../../../assets/textures/wood.webp') center / 1024px,
     var(--desk);
 }
@@ -19,7 +24,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 35%, rgb(255 190 110 / 0.16), transparent 60%);
+  background: radial-gradient(circle at 26% 16%, rgb(255 178 100 / 0.13), transparent 55%);
   animation: candle 5.5s ease-in-out infinite alternate;
 }
 
@@ -40,23 +45,24 @@
  */
 .book {
   --cover: clamp(6px, 1.3vmin, 13px);
-  --edge-light: #efe2c4;
-  --edge-dark: #c6ae86;
+  --edge-light: #c9b28a;
+  --edge-dark: #8a7150;
   position: relative;
   width: min(100%, 720px);
   height: min(100%, 980px);
   border-radius: 6px 12px 12px 6px;
   background:
-    radial-gradient(ellipse at 30% 20%, rgb(255 220 180 / 0.14), transparent 60%),
-    linear-gradient(to right, rgb(0 0 0 / 0.35), transparent 4%),
+    radial-gradient(ellipse at 22% 12%, rgb(255 200 150 / 0.16), transparent 55%),
+    linear-gradient(to right, rgb(0 0 0 / 0.45), transparent 4%),
     url('../../../assets/textures/leather.webp') center / 512px,
-    #5a2a1c;
+    #361812;
+  /* Тень от свечи падает вправо вниз; свет скользит по верхней кромке переплёта */
   box-shadow:
-    inset 0 0 0 1px rgb(255 220 180 / 0.12),
-    inset 0 2px 3px rgb(255 220 180 / 0.12),
-    inset 0 -3px 6px rgb(0 0 0 / 0.45),
-    0 2px 3px rgb(0 0 0 / 0.5),
-    0 22px 50px rgb(0 0 0 / 0.6);
+    inset 0 0 0 1px rgb(255 210 160 / 0.1),
+    inset 1px 2px 3px rgb(255 210 160 / 0.14),
+    inset 0 -4px 8px rgb(0 0 0 / 0.55),
+    3px 5px 6px rgb(0 0 0 / 0.6),
+    24px 36px 70px rgb(0 0 0 / 0.75);
 }
 
 /* Закладка-лента выглядывает из-под нижнего обреза */
@@ -90,22 +96,24 @@
   border-radius: 2px 5px 5px 2px;
   background-color: var(--parchment);
   background-image:
-    /* Освещение одной страницы: корешок слева уходит в тень, к обрезу страница чуть темнеет */
-    linear-gradient(to right, rgb(80 50 20 / 0.28), rgb(80 50 20 / 0.08) 3%, transparent 9%, transparent 85%, rgb(90 60 30 / 0.12)),
-    radial-gradient(ellipse at 55% 40%, rgb(255 250 235 / 0.4), transparent 70%),
+    /* Свет свечи сверху слева, к нижнему правому углу страница уходит в холодную тень */
+    radial-gradient(ellipse 85% 75% at 32% 22%, rgb(255 238 205 / 0.34), transparent 70%),
+    linear-gradient(150deg, transparent 50%, rgb(28 40 38 / 0.16)),
+    /* Корешок слева уходит в тень, к обрезу страница темнеет */
+    linear-gradient(to right, rgb(50 30 12 / 0.38), rgb(60 36 14 / 0.1) 3%, transparent 9%, transparent 82%, rgb(60 38 18 / 0.18)),
     url('../../../assets/textures/parchment.webp');
-  background-size: 100% 100%, 100% 100%, 1024px;
-  /* Обрез: тонкие слои страниц справа и снизу */
+  background-size: 100% 100%, 100% 100%, 100% 100%, 1024px;
+  /* Обрез: тонкие слои страниц справа и снизу; края листа обожжены временем */
   box-shadow:
     1px 1px 0 var(--edge-dark),
     2px 2px 0 var(--edge-light),
     3px 3px 0 var(--edge-dark),
     4px 4px 0 var(--edge-light),
     5px 5px 0 var(--edge-dark),
-    var(--stack) var(--stack) 0 #a88e66,
-    calc(var(--stack) + 1px) calc(var(--stack) + 2px) 4px rgb(0 0 0 / 0.45),
-    inset 0 0 40px rgb(120 84 40 / 0.32),
-    inset 0 0 6px rgb(90 60 30 / 0.3);
+    var(--stack) var(--stack) 0 #5e4a33,
+    calc(var(--stack) + 2px) calc(var(--stack) + 3px) 6px rgb(0 0 0 / 0.6),
+    inset 0 0 90px rgb(60 32 10 / 0.55),
+    inset 0 0 18px rgb(40 22 8 / 0.55);
   overflow: hidden;
   isolation: isolate;
 }
@@ -126,22 +134,24 @@
       /* Разворот: страницы изгибаются к корешку, там глубокая тень и узкий блик на изгибе */
       linear-gradient(
         to right,
-        rgb(90 60 30 / 0.14),
+        rgb(50 30 12 / 0.22),
         transparent 6%,
         transparent 38%,
-        rgb(255 250 235 / 0.18) 44%,
-        rgb(80 50 20 / 0.16) 47.5%,
-        rgb(50 30 12 / 0.42) 50%,
-        rgb(80 50 20 / 0.16) 52.5%,
-        rgb(255 250 235 / 0.18) 56%,
+        rgb(255 240 210 / 0.14) 44%,
+        rgb(50 30 12 / 0.24) 47.5%,
+        rgb(24 14 6 / 0.62) 50%,
+        rgb(50 30 12 / 0.24) 52.5%,
+        rgb(255 240 210 / 0.1) 56%,
         transparent 62%,
-        transparent 94%,
-        rgb(90 60 30 / 0.14)
+        transparent 93%,
+        rgb(40 30 22 / 0.26)
       ),
-      radial-gradient(ellipse at 25% 40%, rgb(255 250 235 / 0.35), transparent 55%),
-      radial-gradient(ellipse at 75% 40%, rgb(255 250 235 / 0.35), transparent 55%),
+      /* Свеча стоит слева: левая страница освещена сильнее, правая — мягче, к краю холоднее */
+      radial-gradient(ellipse 60% 80% at 22% 28%, rgb(255 236 200 / 0.38), transparent 70%),
+      radial-gradient(ellipse 55% 75% at 70% 32%, rgb(255 236 200 / 0.24), transparent 70%),
+      linear-gradient(160deg, transparent 55%, rgb(26 40 38 / 0.18)),
       url('../../../assets/textures/parchment.webp');
-    background-size: 100% 100%, 100% 100%, 100% 100%, 1024px;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 1024px;
     /* Обрез с обеих сторон и снизу */
     box-shadow:
       0 1px 0 1px var(--edge-dark),
@@ -149,10 +159,10 @@
       0 3px 0 3px var(--edge-dark),
       0 4px 0 4px var(--edge-light),
       0 5px 0 5px var(--edge-dark),
-      0 var(--stack) 0 var(--stack) #a88e66,
-      0 calc(var(--stack) + 2px) 5px var(--stack) rgb(0 0 0 / 0.4),
-      inset 0 0 40px rgb(120 84 40 / 0.3),
-      inset 0 0 6px rgb(90 60 30 / 0.3);
+      0 var(--stack) 0 var(--stack) #5e4a33,
+      4px calc(var(--stack) + 4px) 8px var(--stack) rgb(0 0 0 / 0.6),
+      inset 0 0 90px rgb(60 32 10 / 0.55),
+      inset 0 0 18px rgb(40 22 8 / 0.55);
   }
 
   /* Корешок: сгиб, в который уходят обе страницы, и стежки переплёта у краёв */
@@ -167,8 +177,8 @@
     pointer-events: none;
     z-index: 1;
     background:
-      linear-gradient(to bottom, rgb(60 38 18 / 0.7) 0 10px, transparent 10px calc(100% - 10px), rgb(60 38 18 / 0.7) calc(100% - 10px)),
-      rgb(70 45 22 / 0.25);
+      linear-gradient(to bottom, rgb(40 24 10 / 0.8) 0 10px, transparent 10px calc(100% - 10px), rgb(40 24 10 / 0.8) calc(100% - 10px)),
+      rgb(40 24 10 / 0.35);
   }
 
   .book__ribbon {
@@ -239,11 +249,11 @@
   inset: 0;
   border-radius: inherit;
   background:
-    radial-gradient(ellipse at 35% 25%, rgb(255 215 170 / 0.16), transparent 55%),
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(0 0 0 / 0.38) 100%),
-    linear-gradient(to right, rgb(0 0 0 / 0.45), rgb(255 220 180 / 0.08) 2.5%, transparent 5%),
+    radial-gradient(ellipse 80% 60% at 28% 18%, rgb(255 200 145 / 0.2), transparent 65%),
+    radial-gradient(ellipse at 45% 40%, transparent 45%, rgb(0 0 0 / 0.55) 100%),
+    linear-gradient(to right, rgb(0 0 0 / 0.55), rgb(255 210 160 / 0.07) 2.5%, transparent 5%),
     url('../../../assets/textures/leather.webp') center / 512px,
-    #5a2a1c;
+    #361812;
   box-shadow:
     inset 0 2px 3px rgb(255 220 180 / 0.15),
     inset 0 -4px 8px rgb(0 0 0 / 0.45);
@@ -255,7 +265,7 @@
   position: absolute;
   inset: calc(var(--corner-offset) + 8px);
   z-index: 1;
-  border: 4px double rgb(214 176 98 / 0.8);
+  border: 4px double rgb(176 140 74 / 0.75);
   border-radius: 3px;
   box-shadow: 0 1px 0 rgb(20 8 4 / 0.6), inset 0 1px 0 rgb(20 8 4 / 0.5);
   pointer-events: none;
@@ -266,13 +276,19 @@
   display: none;
 }
 
-.book[data-page='title'] .page__corner {
-  opacity: 0.95;
-  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.55));
+/* Углы обложки окованы старой медью с патиной (рисунок — tools/art/ui/corner-fitting.ts) */
+.book[data-page='title'] .page {
+  --corner-offset: 0px;
 }
 
-.book[data-page='title'] .page__corner .art-ink {
-  color: #d6b062;
+.book[data-page='title'] .page__corner {
+  z-index: 2;
+  width: calc(var(--corner) * 1.25);
+  background: url('../../../assets/ui/corner-fitting.webp') 0 0 / 100% 100% no-repeat;
+}
+
+.book[data-page='title'] .page__corner > svg {
+  display: none;
 }
 
 /* Большой горизонтальный экран: закрытая книга — в книжных, а не альбомных пропорциях */

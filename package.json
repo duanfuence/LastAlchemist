@@ -23,7 +23,8 @@
     "content:check": "tsx tools/content-check.ts",
     "art": "tsx tools/art/render.ts",
     "art:textures": "tsx tools/art/textures.ts",
-    "audio": "tsx tools/audio/synth.ts"
+    "audio": "tsx tools/audio/synth.ts",
+    "music": "tsx tools/audio/music.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

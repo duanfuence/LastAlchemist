@@ -117,37 +117,149 @@ test.describe('реакция соединения', () => {
 });
 
 test.describe('звук', () => {
-  test('кнопка выключает звук, настройка переживает перезагрузку', async ({ page }, testInfo) => {
+  test('панель звука: музыка и эффекты выключаются отдельно, настройки переживают перезагрузку', async ({ page }, testInfo) => {
     await openLab(page, testInfo);
     const toggle = page.getByTestId('sound-toggle');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    const panel = page.getByTestId('sound-panel');
+    await expect(panel).toBeHidden();
     await press(toggle, testInfo);
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(panel).toBeVisible();
+    await expect(page.getByTestId('sound-all')).toBeChecked();
+    await expect(page.getByTestId('music-enabled')).toBeChecked();
+    await expect(page.getByTestId('effects-enabled')).toBeChecked();
+
+    await page.getByTestId('music-enabled').uncheck();
+    await page.getByTestId('effects-volume').fill('30');
+    await page.getByTestId('music-volume').fill('40');
     const stored = await page.evaluate(() => localStorage.getItem('last-alchemist:sound'));
-    expect(JSON.parse(stored ?? '{}')).toMatchObject({ muted: true });
+    // Ползунок музыки снова включает музыку
+    expect(JSON.parse(stored ?? '{}')).toMatchObject({ muted: false, musicMuted: false, musicVolume: 0.4, volume: 0.3 });
+    await page.getByTestId('music-enabled').uncheck();
 
     await openLab(page, testInfo);
-    await expect(page.getByTestId('sound-toggle')).toHaveAttribute('aria-pressed', 'false');
     await press(page.getByTestId('sound-toggle'), testInfo);
-    await expect(page.getByTestId('sound-toggle')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('music-enabled')).not.toBeChecked();
+    await expect(page.getByTestId('effects-enabled')).toBeChecked();
+    await expect(page.getByTestId('effects-volume')).toHaveValue('30');
+    await expect(page.getByTestId('music-volume')).toHaveValue('40');
   });
 
-  test('ползунок громкости на широком экране меняет громкость', async ({ page }, testInfo) => {
+  test('«весь звук» выключает всё, панель закрывается клавишей Esc и касанием вне', async ({ page }, testInfo) => {
     await openLab(page, testInfo);
-    const volume = page.getByTestId('sound-volume');
-    test.skip(!(await volume.isVisible()), 'ползунок есть только на широких экранах');
-    await volume.fill('30');
-    const stored = await page.evaluate(() => localStorage.getItem('last-alchemist:sound'));
-    expect(JSON.parse(stored ?? '{}')).toMatchObject({ volume: 0.3, muted: false });
+    await press(page.getByTestId('sound-toggle'), testInfo);
+    await page.getByTestId('sound-all').uncheck();
+    await expect(page.getByTestId('sound-toggle')).toHaveAttribute('data-audible', 'false');
+    await expect(page.getByTestId('music-volume')).toBeDisabled();
+    await expect(page.getByTestId('effects-enabled')).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('sound-panel')).toBeHidden();
+    await press(page.getByTestId('sound-toggle'), testInfo);
+    await expect(page.getByTestId('sound-panel')).toBeVisible();
+    // Касание стола вне панели (на низком экране панель закрывает его середину)
+    const board = page.getByTestId('board');
+    const box = await board.boundingBox();
+    const corner = { x: 12, y: (box?.height ?? 40) - 12 };
+    if (testInfo.project.use.hasTouch) await board.tap({ position: corner });
+    else await board.click({ position: corner });
+    await expect(page.getByTestId('sound-panel')).toBeHidden();
+    // Игра продолжается и без звука
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await expect(boardItems(page, 'water')).toHaveCount(1);
   });
 
-  test('звуковые файлы загружаются после готовности игры', async ({ page }, testInfo) => {
+  test('эффекты скачиваются после готовности игры, музыка — только после первого жеста', async ({ page }, testInfo) => {
     const loaded = new Map<string, number>();
     page.on('response', (response) => {
       if (response.url().endsWith('.mp3')) loaded.set(response.url(), response.status());
     });
-    await openLab(page, testInfo);
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
     await expect.poll(() => loaded.size).toBe(6);
+    expect([...loaded.keys()].some((url) => /music/.test(url))).toBe(false);
+
+    await press(page.getByTestId('open-book'), testInfo);
+    await expect.poll(() => [...loaded.keys()].some((url) => /music/.test(url))).toBe(true);
     expect([...loaded.values()].every((status) => status === 200)).toBe(true);
+  });
+
+  test('музыка играет одним бесшовным источником и не перезапускается от действий игрока', async ({ page }, testInfo) => {
+    // Записываем запуски источников Web Audio: эффекты — без цикла, музыка — с циклом
+    await page.addInitScript(() => {
+      const starts: { loop: boolean; loopStart: number; loopEnd: number; offset: number | undefined }[] = [];
+      (window as unknown as { __starts: typeof starts }).__starts = starts;
+      const prototype = AudioBufferSourceNode.prototype;
+      const original = Object.getOwnPropertyDescriptor(prototype, 'start')!.value as (this: AudioBufferSourceNode, ...args: number[]) => void;
+      prototype.start = function (this: AudioBufferSourceNode, ...args: number[]) {
+        starts.push({ loop: this.loop, loopStart: this.loopStart, loopEnd: this.loopEnd, offset: args[1] });
+        original.apply(this, args);
+      };
+    });
+    await openLab(page, testInfo);
+    const starts = () =>
+      page.evaluate(() => (window as unknown as { __starts: { loop: boolean; loopStart: number; loopEnd: number }[] }).__starts);
+    await expect.poll(async () => (await starts()).filter((s) => s.loop).length, { timeout: 10_000 }).toBe(1);
+    const music = (await starts()).find((s) => s.loop)!;
+    expect(music.loopStart).toBeCloseTo(0.5);
+    expect(music.loopEnd).toBeCloseTo(128.5);
+
+    // Размещение и соединения: звучат эффекты, музыка продолжается тем же источником
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await press(boardItems(page, 'water'), testInfo);
+    await press(page.getByTestId('catalog-fire'), testInfo);
+    await expect(boardItems(page, 'steam')).toHaveCount(1);
+    await expect.poll(async () => (await starts()).filter((s) => !s.loop).length).toBeGreaterThan(1);
+    expect((await starts()).filter((s) => s.loop)).toHaveLength(1);
+  });
+
+  test('скрытая вкладка приостанавливает звук, возвращение продолжает ту же музыку', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      const state = { hidden: false, contexts: [] as AudioContext[], loops: 0 };
+      (window as unknown as { __audio: typeof state }).__audio = state;
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => state.hidden });
+      const Original = window.AudioContext;
+      window.AudioContext = class extends Original {
+        constructor(options?: AudioContextOptions) {
+          super(options);
+          state.contexts.push(this);
+        }
+      };
+      const prototype = AudioBufferSourceNode.prototype;
+      const start = Object.getOwnPropertyDescriptor(prototype, 'start')!.value as (this: AudioBufferSourceNode, ...args: number[]) => void;
+      prototype.start = function (this: AudioBufferSourceNode, ...args: number[]) {
+        if (this.loop) state.loops += 1;
+        start.apply(this, args);
+      };
+    });
+    await openLab(page, testInfo);
+    const audio = () =>
+      page.evaluate(() => {
+        const state = (window as unknown as { __audio: { contexts: AudioContext[]; loops: number } }).__audio;
+        return { states: state.contexts.map((c) => c.state), loops: state.loops };
+      });
+    await expect.poll(async () => (await audio()).loops, { timeout: 10_000 }).toBe(1);
+    const setHidden = (hidden: boolean) =>
+      page.evaluate((value) => {
+        (window as unknown as { __audio: { hidden: boolean } }).__audio.hidden = value;
+        document.dispatchEvent(new Event('visibilitychange'));
+      }, hidden);
+
+    await setHidden(true);
+    await expect.poll(async () => (await audio()).states).toEqual(['suspended']);
+    await setHidden(false);
+    await expect.poll(async () => (await audio()).states).toEqual(['running']);
+    // Музыка не перезапускалась: по-прежнему один источник с циклом
+    expect((await audio()).loops).toBe(1);
+  });
+
+  test('при выключенной музыке её файл не загружается', async ({ page }, testInfo) => {
+    const requested: string[] = [];
+    page.on('request', (request) => requested.push(request.url()));
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('last-alchemist:sound', JSON.stringify({ musicMuted: true })));
+    await openLab(page, testInfo);
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await page.waitForTimeout(500);
+    expect(requested.some((url) => /music/.test(url))).toBe(false);
   });
 });

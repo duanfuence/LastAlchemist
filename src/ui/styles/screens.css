@@ -40,11 +40,12 @@
  * рукописная пометка — на бумажном ярлычке, кнопка — сургучная печать.
  */
 .book[data-page='title'] .title-page {
-  color: #e2c98f;
+  color: #cdb07a;
 }
 
 .book[data-page='title'] .title {
-  background: linear-gradient(180deg, #f8e7b0 0%, #ddb767 42%, #a2752a 56%, #e8c97f 100%);
+  /* Потускневшее старое золото: свет свечи скользит по верху букв */
+  background: linear-gradient(180deg, #ecd398 0%, #c49a52 42%, #7f5a22 58%, #c9a361 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -58,18 +59,18 @@
 }
 
 .book[data-page='title'] .overline {
-  color: rgb(226 201 143 / 0.82);
+  color: rgb(205 180 128 / 0.75);
   text-shadow: 0 1px 1px rgb(0 0 0 / 0.6);
 }
 
 .book[data-page='title'] .lead {
-  color: rgb(238 218 172 / 0.92);
+  color: rgb(222 202 160 / 0.88);
   text-shadow: 0 1px 1px rgb(0 0 0 / 0.65);
 }
 
 /* Эмблема — слепое тиснение: вдавленная линия со светлой нижней кромкой */
 .book[data-page='title'] .title-page__emblem .art-ink {
-  color: #2e140c;
+  color: #160805;
 }
 
 .book[data-page='title'] .title-page__emblem {
@@ -79,7 +80,7 @@
 
 /* Разделитель под названием — золотое тиснение, как и само название */
 .book[data-page='title'] .divider .art-ink {
-  color: #d6b062;
+  color: #b38f4c;
 }
 
 .book[data-page='title'] .divider {
@@ -88,8 +89,8 @@
 
 /* Центр эмблемы — гранатовая вставка */
 .book[data-page='title'] .title-page__emblem .art-gold {
-  fill: #8e2c26;
-  stroke: #d6b062;
+  fill: #5e1b18;
+  stroke: #b38f4c;
 }
 
 .book[data-page='title'] .hand-note {
