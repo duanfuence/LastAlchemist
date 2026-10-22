@@ -1,4 +1,4 @@
-import type { Page, TestInfo } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 import { expect, press, test } from './fixtures';
 import {
   SAVE_KEY,
@@ -75,9 +75,10 @@ test.describe('лаборатория', () => {
     await expect(page.getByTestId('toast')).toContainText('Вы уже знаете этот рецепт');
     await expect(page.getByTestId('board-caption')).toContainText('Рецепт уже известен');
     await expect(page.getByTestId('discovery-count')).toHaveText('1 из 27');
-    // Участники израсходованы, второго Пара на столе нет, анимации открытия нет
+    // Огонь на столе остался, второго Пара нет, анимации открытия нет
     await expect(boardItems(page, 'steam')).toHaveCount(1);
-    await expect(boardItems(page)).toHaveCount(1);
+    await expect(boardItems(page, 'fire')).toHaveCount(1);
+    await expect(boardItems(page)).toHaveCount(2);
     await expect(page.locator('.board-item.is-discovery')).toHaveCount(0);
     await expect(page.locator('.catalog-item[data-element="steam"]')).toHaveCount(1);
   });
@@ -252,17 +253,21 @@ test.describe('альтернативные рецепты', () => {
     await combineFromCatalog(page, testInfo, 'water', 'fire');
     await combineFromCatalog(page, testInfo, 'steam', 'air');
     await expect(page.getByTestId('discovery-count')).toHaveText('3 из 27');
-    const itemsBefore = await boardItems(page).count();
 
     // Облако + Вода — другой путь к уже открытому Дождю
     await press(page.getByTestId('catalog-cloud'), testInfo);
+    const itemsBefore = await boardItems(page).count();
+    const cloudBefore = await medalCenter(boardItems(page, 'cloud').last());
     await press(boardItems(page, 'cloud').last(), testInfo);
     await press(page.getByTestId('catalog-water'), testInfo);
     await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'new-recipe');
     await expect(page.getByTestId('toast')).toContainText('Найден альтернативный рецепт');
     await expect(page.getByTestId('board-caption')).toContainText('Новый рецепт записан');
     await expect(boardItems(page, 'rain')).toHaveCount(1);
+    // Облако осталось на столе на прежнем месте
     await expect(boardItems(page)).toHaveCount(itemsBefore);
+    const cloudAfter = await medalCenter(boardItems(page, 'cloud').last());
+    expect(Math.hypot(cloudAfter.x - cloudBefore.x, cloudAfter.y - cloudBefore.y)).toBeLessThan(1);
     await expect(page.locator('.board-item.is-discovery')).toHaveCount(0);
     await expect(page.getByTestId('discovery-count')).toHaveText('3 из 27');
     await waitForSaved(page, '"cloud|water"');
@@ -284,19 +289,102 @@ test.describe('альтернативные рецепты', () => {
     await expect(boardItems(page, 'rain')).toHaveCount(1);
   });
 
-  test('повторное соединение перетаскиванием расходует участников', async ({ page }, testInfo) => {
-    test.skip(Boolean(testInfo.project.use.hasTouch), 'мышь проверяется на компьютерных профилях');
+});
+
+test.describe('повтор и неудача: участники остаются на своих местах', () => {
+  /** Перенос пальцем на сенсорных профилях, мышью — на компьютерных. */
+  const drag = async (page: Page, testInfo: TestInfo, from: Locator, to: { x: number; y: number }) => {
+    // Свежие открытия встают в начало ленты — нужный элемент может уйти за край, игрок прокрутил бы к нему
+    await from.scrollIntoViewIfNeeded();
+    if (touchOnly(testInfo)) await touchDrag(page, from, to);
+    else await mouseDrag(page, from, to);
+  };
+
+  /** Кладёт два элемента из списка в разные точки стола. */
+  const placeTwo = async (page: Page, testInfo: TestInfo, first: string, second: string) => {
+    await drag(page, testInfo, page.getByTestId(`catalog-${first}`), await boardPoint(page, 0.25, 0.3));
+    await expect(boardItems(page, first)).not.toHaveCount(0);
+    const count = await boardItems(page).count();
+    await drag(page, testInfo, page.getByTestId(`catalog-${second}`), await boardPoint(page, 0.7, 0.55));
+    await expect(boardItems(page)).toHaveCount(count + 1);
+  };
+
+  const dragOnto = async (page: Page, testInfo: TestInfo, from: string, to: string) => {
+    await drag(page, testInfo, boardItems(page, from).first(), await medalCenter(boardItems(page, to).last()));
+  };
+
+  const centers = async (page: Page) =>
+    page.locator('.board-item:not(.is-merging)').evaluateAll((nodes) =>
+      nodes.map((node) => ({ id: (node as HTMLElement).dataset['element'], left: (node as HTMLElement).style.left, top: (node as HTMLElement).style.top })),
+    );
+
+  test('известный рецепт переносом: оба остаются, перенесённый возвращается на своё место', async ({ page }, testInfo) => {
     await openLab(page, testInfo);
-    await mouseDrag(page, page.getByTestId('catalog-air'), await boardPoint(page, 0.3, 0.3));
-    await mouseDrag(page, page.getByTestId('catalog-earth'), await medalCenter(boardItems(page, 'air')));
+    await placeTwo(page, testInfo, 'air', 'earth');
+    await dragOnto(page, testInfo, 'air', 'earth');
     await expect(boardItems(page, 'dust')).toHaveCount(1);
 
-    await mouseDrag(page, page.getByTestId('catalog-earth'), await boardPoint(page, 0.7, 0.6));
-    await mouseDrag(page, page.getByTestId('catalog-air'), await medalCenter(boardItems(page, 'earth')));
+    await placeTwo(page, testInfo, 'air', 'earth');
+    const before = await centers(page);
+    await dragOnto(page, testInfo, 'air', 'earth');
     await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'known');
-    await expect(boardItems(page, 'earth')).toHaveCount(0);
+    await expect(page.getByTestId('toast')).toContainText(/уже знаете|Рецепт известен/);
+    // Ничего не исчезло и не появилось, позиции в модели и на экране прежние
+    await expect(boardItems(page)).toHaveCount(3);
     await expect(boardItems(page, 'dust')).toHaveCount(1);
-    await expect(boardItems(page)).toHaveCount(1);
+    await expect(page.locator('.is-discovery')).toHaveCount(0);
+    await expect(page.locator('[data-testid="reaction"][data-kind="discovery"]')).toHaveCount(0);
+    expect(await centers(page)).toEqual(before);
+    await waitForSaved(page, '"air"');
+    const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? '{}') as { board: unknown[] }, SAVE_KEY);
+    expect(saved.board).toHaveLength(3);
+
+    // Сразу следующий опыт с теми же элементами: Земля + Огонь из списка = Лава
+    await press(boardItems(page, 'earth'), testInfo);
+    await press(page.getByTestId('catalog-fire'), testInfo);
+    await expect(boardItems(page, 'lava')).toHaveCount(1);
+    await expect(boardItems(page, 'air')).toHaveCount(1);
+  });
+
+  test('нет рецепта переносом: оба остаются, перенесённый возвращается на своё место', async ({ page }, testInfo) => {
+    await openLab(page, testInfo);
+    await placeTwo(page, testInfo, 'fire', 'fire');
+    const before = await centers(page);
+    await dragOnto(page, testInfo, 'fire', 'fire');
+    await expect(page.getByTestId('board-caption')).toHaveText('Огонь и Огонь не соединяются.');
+    await expect(boardItems(page, 'fire')).toHaveCount(2);
+    expect(await centers(page)).toEqual(before);
+  });
+
+  test('альтернативный рецепт касаниями: участники остаются, рецепт записывается', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await page.evaluate(
+      ([key, value]) => localStorage.setItem(key, value),
+      [
+        SAVE_KEY,
+        JSON.stringify({
+          v: 1,
+          savedAt: 1,
+          discovered: ['water', 'fire', 'earth', 'air', 'rain', 'steam', 'cloud'],
+          recipes: ['air|water', 'fire|water', 'air|steam'],
+          board: [
+            { id: 'cloud', x: 0.3, y: 0.4 },
+            { id: 'water', x: 0.7, y: 0.5 },
+          ],
+        }),
+      ] as const,
+    );
+    await openLab(page, testInfo);
+    const before = await centers(page);
+    await press(boardItems(page, 'cloud'), testInfo);
+    await press(boardItems(page, 'water'), testInfo);
+    await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'new-recipe');
+    await expect(page.getByTestId('toast')).toContainText(/альтернативный рецепт|Новый рецепт/);
+    await expect(boardItems(page)).toHaveCount(2);
+    await expect(boardItems(page, 'rain')).toHaveCount(0);
+    await expect(page.locator('.is-discovery')).toHaveCount(0);
+    expect(await centers(page)).toEqual(before);
+    await waitForSaved(page, '"cloud|water"');
   });
 });
 

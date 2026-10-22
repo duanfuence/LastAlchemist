@@ -669,6 +669,21 @@
   from { opacity: 0; transform: translateY(-4px); }
 }
 
+/* Перенесённый элемент возвращается на своё место (известный результат или нет рецепта) */
+.board-item.is-returning {
+  transition: left 260ms cubic-bezier(0.3, 0.7, 0.3, 1), top 260ms cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+/* Известный результат: участники остаются и коротко «узнают» друг друга, без золота открытия */
+.board-item.is-recognized .medal__figure {
+  animation: recognized 420ms ease-out;
+}
+
+@keyframes recognized {
+  0%, 100% { transform: none; filter: none; }
+  40% { transform: scale(1.08); filter: brightness(1.12); }
+}
+
 /* Нет рецепта: элементы вздрагивают и на миг тускнеют */
 .board-item.is-rejected .medal__figure {
   animation: shake 380ms ease-in-out;

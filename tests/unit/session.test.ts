@@ -62,29 +62,37 @@ const onBoard = (session: GameSession, id: string): number =>
   session.board.all.filter((item) => item.elementId === id).length;
 
 describe('повторное получение уже открытого результата', () => {
-  it('первое получение кладёт результат на место цели', () => {
+  it('новое открытие расходует обоих участников и кладёт результат на место цели', () => {
     const { session } = newSession();
     const report = combineOnBoard(session, 'air', 'earth');
     expect(report.outcome).toMatchObject({ kind: 'discovery', element: 'dust' });
+    expect(report.consumed).toHaveLength(2);
     expect(report.result).toMatchObject({ elementId: 'dust', x: 0.7, y: 0.7 });
     expect(session.board.snapshot()).toEqual([{ id: 'dust', x: 0.7, y: 0.7 }]);
   });
 
-  it('повторная пара расходует участников и не создаёт второй экземпляр', () => {
+  it('известный рецепт: оба участника остаются на прежних местах, результата нет', () => {
     const { session } = newSession();
     combineOnBoard(session, 'air', 'earth');
     const recipesBefore = [...session.progress.recipes];
-    const report = combineOnBoard(session, 'earth', 'air');
+    const earth = session.place('earth', 0.15, 0.25)!;
+    const air = session.place('air', 0.8, 0.6)!;
+    const boardBefore = session.board.snapshot();
+
+    const report = session.combine({ uid: earth.uid }, { uid: air.uid })!;
     expect(report.outcome).toMatchObject({ kind: 'known', element: 'dust' });
     expect(report.result).toBeUndefined();
-    expect(report.consumed).toHaveLength(2);
+    expect(report.consumed).toEqual([]);
+    // Стол не изменился: те же элементы на тех же местах, второго экземпляра результата нет
+    expect(session.board.snapshot()).toEqual(boardBefore);
+    expect(session.board.get(earth.uid)).toMatchObject({ x: 0.15, y: 0.25 });
+    expect(session.board.get(air.uid)).toMatchObject({ x: 0.8, y: 0.6 });
     expect(onBoard(session, 'dust')).toBe(1);
-    expect(onBoard(session, 'air') + onBoard(session, 'earth')).toBe(0);
     expect(session.progress.recipes).toEqual(recipesBefore);
     expect(session.counts.found).toBe(1);
   });
 
-  it('альтернативный рецепт запоминается без повторного экземпляра результата', () => {
+  it('альтернативный рецепт: участники остаются, рецепт записывается, результата нет', () => {
     const { session } = newSession();
     combineOnBoard(session, 'air', 'water'); // Дождь — первый рецепт
     combineOnBoard(session, 'water', 'fire'); // Пар
@@ -92,17 +100,38 @@ describe('повторное получение уже открытого рез
     session.clearBoard();
     const found = session.counts.found;
 
-    const report = combineOnBoard(session, 'cloud', 'water');
+    const cloud = session.place('cloud', 0.3, 0.3)!;
+    const water = session.place('water', 0.6, 0.4)!;
+    const report = session.combine({ uid: cloud.uid }, { uid: water.uid })!;
     expect(report.outcome).toMatchObject({ kind: 'new-recipe', element: 'rain' });
     expect(report.result).toBeUndefined();
-    expect(report.consumed).toHaveLength(2);
-    expect(session.board.all).toHaveLength(0);
+    expect(report.consumed).toEqual([]);
+    expect(session.board.snapshot()).toEqual([
+      { id: 'cloud', x: 0.3, y: 0.3 },
+      { id: 'water', x: 0.6, y: 0.4 },
+    ]);
     expect(session.progress.recipes).toContain('cloud|water');
     expect(session.progress.discovered.filter((id) => id === 'rain')).toHaveLength(1);
     expect(session.counts.found).toBe(found);
 
-    // Тот же альтернативный рецепт второй раз — уже известен
-    expect(combineOnBoard(session, 'water', 'cloud').outcome.kind).toBe('known');
+    // Тот же альтернативный рецепт второй раз — уже известен, и участники снова остаются
+    const again = session.combine({ uid: water.uid }, { uid: cloud.uid })!;
+    expect(again.outcome.kind).toBe('known');
+    expect(session.board.all).toHaveLength(2);
+  });
+
+  it('после повтора с теми же элементами сразу можно продолжить опыты', () => {
+    const { session } = newSession();
+    combineOnBoard(session, 'water', 'fire'); // Пар
+    const water = session.place('water', 0.2, 0.2)!;
+    const fire = session.place('fire', 0.5, 0.5)!;
+    const earth = session.place('earth', 0.8, 0.8)!;
+    expect(session.combine({ uid: water.uid }, { uid: fire.uid })!.outcome.kind).toBe('known');
+    // Та же Вода сразу участвует в новом открытии
+    const next = session.combine({ uid: water.uid }, { uid: earth.uid })!;
+    expect(next.outcome).toMatchObject({ kind: 'discovery', element: 'mud' });
+    expect(next.consumed.sort()).toEqual([water.uid, earth.uid].sort());
+    expect(session.board.get(fire.uid)).toMatchObject({ elementId: 'fire', x: 0.5, y: 0.5 });
   });
 
   it('повторное получение известным рецептом не мешает потом записать альтернативный', () => {
@@ -135,7 +164,17 @@ describe('повторное получение уже открытого рез
     for (const id of content.startingIds) expect(session.place(id, 0.5, 0.5), id).toBeDefined();
   });
 
-  it('каждый рецепт базы: первое получение, затем повтор без второго экземпляра', () => {
+  it('элемент из списка и известный результат: элемент на столе остаётся', () => {
+    const { session } = newSession();
+    session.combine({ elementId: 'water' }, { elementId: 'fire' }); // Пар
+    const fire = session.place('fire', 0.4, 0.4)!;
+    const report = session.combine({ elementId: 'water' }, { uid: fire.uid })!;
+    expect(report.outcome.kind).toBe('known');
+    expect(report.consumed).toEqual([]);
+    expect(session.board.get(fire.uid)).toMatchObject({ elementId: 'fire', x: 0.4, y: 0.4 });
+  });
+
+  it('каждый рецепт базы: первое получение, затем повтор — участники на месте, второго экземпляра нет', () => {
     const { session } = newSession();
     const pending = [...content.recipes];
     // Рецепты применяются по мере доступности входов, пока не будут пройдены все
@@ -150,10 +189,17 @@ describe('повторное получение уже открытого рез
       expect(first.outcome.kind, recipe!.key).toBe(known ? 'new-recipe' : 'discovery');
       expect(onBoard(session, recipe!.output), recipe!.key).toBe(known ? 0 : 1);
       expect(session.progress.recipes, recipe!.key).toContain(recipe!.key);
+      // Альтернативный рецепт не расходует участников
+      expect(session.board.all, recipe!.key).toHaveLength(known ? 2 : 1);
 
+      session.clearBoard();
       const again = combineOnBoard(session, recipe!.inputs[1], recipe!.inputs[0]);
       expect(again.outcome.kind, recipe!.key).toBe('known');
-      expect(onBoard(session, recipe!.output), `${recipe!.key}: второй экземпляр`).toBe(known ? 0 : 1);
+      expect(again.consumed, recipe!.key).toEqual([]);
+      expect(session.board.all, `${recipe!.key}: участники на месте`).toHaveLength(2);
+      expect(onBoard(session, recipe!.output), `${recipe!.key}: второй экземпляр`).toBe(
+        recipe!.inputs.includes(recipe!.output) ? 1 : 0,
+      );
     }
     expect([...session.progress.recipes].sort()).toEqual(content.recipes.map((r) => r.key).sort());
     expect(session.progress.discovered).toHaveLength(content.elements.size);
@@ -164,8 +210,8 @@ describe('повторное получение уже открытого рез
     combineOnBoard(session, 'air', 'water');
     combineOnBoard(session, 'water', 'fire');
     combineOnBoard(session, 'steam', 'air');
-    combineOnBoard(session, 'cloud', 'water'); // альтернативный рецепт Дождя
-    combineOnBoard(session, 'air', 'water'); // повтор
+    combineOnBoard(session, 'cloud', 'water'); // альтернативный рецепт Дождя: участники остаются
+    combineOnBoard(session, 'air', 'water'); // повтор: участники остаются
     session.flush();
     const boardBefore = session.board.snapshot();
 
@@ -184,7 +230,11 @@ describe('повторное получение уже открытого рез
     const b = session.place('fire', 0.6, 0.2)!;
     const report = session.combine({ uid: a.uid }, { uid: b.uid })!;
     expect(report.outcome.kind).toBe('no-recipe');
-    expect(session.board.all).toHaveLength(2);
+    expect(report.consumed).toEqual([]);
+    expect(session.board.snapshot()).toEqual([
+      { id: 'fire', x: 0.2, y: 0.2 },
+      { id: 'fire', x: 0.6, y: 0.2 },
+    ]);
     expect(session.counts.found).toBe(0);
   });
 

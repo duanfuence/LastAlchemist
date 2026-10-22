@@ -32,6 +32,8 @@ const DISCOVERY_SOUND_DELAY_MS = 160;
 
 /** Длительность растворения соединяемых элементов (согласована с CSS). */
 const MERGE_MS = 300;
+/** Возврат перенесённого элемента на прежнее место (согласован с CSS). */
+const RETURN_MS = 260;
 /** Удержание пальца, после которого элемент из вкладного листа можно нести на стол. */
 const HOLD_TO_DRAG_MS = 280;
 /** Сколько держится сообщение о неудаче или открытии, прежде чем вернуть подсказку. */
@@ -538,8 +540,11 @@ export class LabView {
       this.rejected(report, first, second, firstDrop);
       return;
     }
+    // Известный результат: стол не меняется. Перенесённый элемент возвращается на своё место,
+    // оба участника коротко откликаются — сочетание узнано
+    if (outcome.kind !== 'discovery') this.returnDragged(first, 'is-recognized', second);
 
-    // Участники исчезают на месте цели, затем появляется результат
+    // Новое открытие: участники исчезают на месте цели, затем появляется результат
     const targetNode = 'uid' in second ? this.itemNodes.get(second.uid) : undefined;
     for (const uid of report.consumed) {
       const node = this.itemNodes.get(uid);
@@ -599,25 +604,34 @@ export class LabView {
     second: CombineSource,
     firstDrop?: { x: number; y: number },
   ): void {
-    // Переносимый элемент не должен остаться поверх цели
-    if (firstDrop && 'uid' in second) {
+    // Элемент, принесённый из списка, кладётся рядом с целью, не перекрывая её;
+    // элемент со стола возвращается на своё место — участники остаются там, где были
+    if (firstDrop && 'uid' in second && !('uid' in first)) {
       const target = this.session.board.get(second.uid);
-      const others = this.session.board.all.filter((item) => !('uid' in first) || item.uid !== first.uid);
-      const spot = findFreeSpot(others, this.geometry(true), target ? { x: target.x, y: target.y } : firstDrop);
-      if ('uid' in first) {
-        this.session.move(first.uid, spot.x, spot.y);
-      } else {
-        const placed = this.session.place(first.elementId, spot.x, spot.y);
-        if (placed) this.useFresh(first.elementId);
-      }
+      const spot = findFreeSpot(this.session.board.all, this.geometry(true), target ? { x: target.x, y: target.y } : firstDrop);
+      const placed = this.session.place(first.elementId, spot.x, spot.y);
+      if (placed) this.useFresh(first.elementId);
     }
-    this.renderBoard();
-    for (const source of [first, second]) {
-      if ('uid' in source) this.animate(this.itemNodes.get(source.uid), 'is-rejected');
-    }
+    this.returnDragged(first, 'is-rejected', second);
     this.sound.play('fail');
     const name = (id: string): string => this.i18n.element(id).name;
     this.flashMessage(this.i18n.t('lab.noRecipe', { first: name(report.first), second: name(report.second) }));
+  }
+
+  /**
+   * Участники остаются на столе: позиции берутся из сессии (перенесённый элемент плавно
+   * возвращается туда, откуда его взяли), затем оба отмечаются анимацией отклика.
+   */
+  private returnDragged(first: CombineSource, feedback: 'is-recognized' | 'is-rejected', second: CombineSource): void {
+    const dragged = 'uid' in first ? this.itemNodes.get(first.uid) : undefined;
+    if (dragged && !prefersReducedMotion()) {
+      dragged.classList.add('is-returning');
+      setTimeout(() => dragged.classList.remove('is-returning'), RETURN_MS);
+    }
+    this.renderBoard();
+    for (const source of [first, second]) {
+      if ('uid' in source) this.animate(this.itemNodes.get(source.uid), feedback);
+    }
   }
 
   private removeItem(uid: number): void {

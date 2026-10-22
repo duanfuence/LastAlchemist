@@ -21,17 +21,18 @@ export interface CombineReport {
   second: string;
   /** Элемент-результат на столе: создаётся только при новом открытии. */
   result?: BoardItem;
-  /** Элементы стола, израсходованные соединением. */
+  /** Элементы стола, израсходованные соединением (только при новом открытии). */
   consumed: number[];
 }
 
 /**
  * Игровая сессия: прогресс, рабочее поле и сохранение.
  * Правила соединения:
- * - при успехе участники со стола расходуются (элементы из списка бесконечны);
- * - результат появляется на месте цели, только если это новое открытие;
- * - уже открытый результат на стол не кладётся, но новый рецепт для него запоминается;
- * - при неудаче ничего не меняется;
+ * - новое открытие: участники со стола расходуются, результат появляется на месте цели;
+ * - известный результат (известным или новым рецептом): стол не меняется — участники остаются
+ *   на своих местах, второй экземпляр результата не создаётся, новый рецепт запоминается;
+ * - нет рецепта: ничего не меняется;
+ * - элементы из списка бесконечны и не расходуются никогда;
  * - повторное получение известного элемента не увеличивает число открытий.
  */
 export class GameSession {
@@ -117,20 +118,21 @@ export class GameSession {
     const report: CombineReport = { outcome, first: firstId, second: secondId, consumed: [] };
     if (outcome.kind === 'no-recipe' || outcome.kind === 'invalid') return report;
 
-    const anchor = at ?? this.position(second) ?? this.position(first) ?? { x: 0.5, y: 0.5 };
-    for (const source of [first, second]) {
-      if ('uid' in source) {
-        this.board.remove(source.uid);
-        report.consumed.push(source.uid);
-      }
-    }
+    // Новый рецепт известного элемента запоминается, но стол не трогается:
+    // участники остаются игроку, а уже открытый результат и так есть в списке
     this.progressState = progress;
-    // Уже открытый элемент есть в списке — второй экземпляр на столе только засоряет его
     if (outcome.kind === 'discovery') {
+      const anchor = at ?? this.position(second) ?? this.position(first) ?? { x: 0.5, y: 0.5 };
+      for (const source of [first, second]) {
+        if ('uid' in source) {
+          this.board.remove(source.uid);
+          report.consumed.push(source.uid);
+        }
+      }
       const result = this.board.add(outcome.element, anchor.x, anchor.y);
       if (result) report.result = result;
     }
-    this.changed();
+    if (outcome.kind !== 'known') this.changed();
     return report;
   }
 
