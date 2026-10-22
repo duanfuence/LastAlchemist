@@ -1,0 +1,910 @@
+{
+  "generatedAt": "2026-10-22T02:49:05.496Z",
+  "browser": "141.0.7390.37",
+  "runs": [
+    {
+      "server": "production",
+      "size": "desktop-1440x900",
+      "console": [
+        {
+          "phase": "title",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "phase": "title",
+          "type": "warning",
+          "text": "SDK Яндекс Игр не найден, игра запущена без него."
+        },
+        {
+          "phase": "title",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "phase": "title",
+          "url": "http://127.0.0.1:4173/sdk.js",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "badResponses": [
+        {
+          "phase": "title",
+          "url": "http://127.0.0.1:4173/sdk.js",
+          "status": 404
+        }
+      ],
+      "pages": {
+        "title": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 876,
+            "clientHeight": 876
+          },
+          "focusable": [
+            "button «Открыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.seal-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)",
+            "ember на circle.art-gold (4000 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.seal-button[data-testid=open-book] «Открыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        },
+        "primal": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 876,
+            "clientHeight": 876
+          },
+          "focusable": [
+            "button «Закрыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.ghost-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.ghost-button[data-testid=close-book] «Закрыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        }
+      },
+      "cardClickChangedDom": false,
+      "returnedToTitle": true
+    },
+    {
+      "server": "production",
+      "size": "phone-portrait-390x844",
+      "console": [
+        {
+          "phase": "title",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "phase": "title",
+          "type": "warning",
+          "text": "SDK Яндекс Игр не найден, игра запущена без него."
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "phase": "title",
+          "url": "http://127.0.0.1:4173/sdk.js",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "badResponses": [
+        {
+          "phase": "title",
+          "url": "http://127.0.0.1:4173/sdk.js",
+          "status": 404
+        }
+      ],
+      "pages": {
+        "title": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 820,
+            "clientHeight": 820
+          },
+          "focusable": [
+            "button «Открыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.seal-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)",
+            "ember на circle.art-gold (4000 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.seal-button[data-testid=open-book] «Открыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        },
+        "primal": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 820,
+            "clientHeight": 820
+          },
+          "focusable": [
+            "button «Закрыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.ghost-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.ghost-button[data-testid=close-book] «Закрыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        }
+      },
+      "cardClickChangedDom": false,
+      "returnedToTitle": true
+    },
+    {
+      "server": "production",
+      "size": "phone-landscape-844x390",
+      "console": [
+        {
+          "phase": "title",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "phase": "title",
+          "type": "warning",
+          "text": "SDK Яндекс Игр не найден, игра запущена без него."
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "phase": "title",
+          "url": "http://127.0.0.1:4173/sdk.js",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "badResponses": [
+        {
+          "phase": "title",
+          "url": "http://127.0.0.1:4173/sdk.js",
+          "status": 404
+        }
+      ],
+      "pages": {
+        "title": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 366,
+            "clientHeight": 366
+          },
+          "focusable": [
+            "button «Открыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.seal-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)",
+            "ember на circle.art-gold (4000 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.seal-button[data-testid=open-book] «Открыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        },
+        "primal": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 488,
+            "clientHeight": 366
+          },
+          "focusable": [
+            "button «Закрыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.ghost-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.ghost-button[data-testid=close-book] «Закрыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        }
+      },
+      "cardClickChangedDom": false,
+      "returnedToTitle": true
+    },
+    {
+      "server": "dev",
+      "size": "desktop-1440x900",
+      "console": [
+        {
+          "phase": "title",
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "phase": "title",
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "phase": "title",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "pages": {
+        "title": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 876,
+            "clientHeight": 876
+          },
+          "focusable": [
+            "button «Открыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.seal-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)",
+            "ember на circle.art-gold (4000 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "beforeunload",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "error",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart",
+                "unhandledrejection"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.seal-button[data-testid=open-book] «Открыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        },
+        "primal": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 876,
+            "clientHeight": 876
+          },
+          "focusable": [
+            "button «Закрыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.ghost-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "beforeunload",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "error",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart",
+                "unhandledrejection"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.ghost-button[data-testid=close-book] «Закрыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        }
+      },
+      "cardClickChangedDom": false,
+      "returnedToTitle": true
+    },
+    {
+      "server": "dev",
+      "size": "phone-portrait-390x844",
+      "console": [
+        {
+          "phase": "title",
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "phase": "title",
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "pages": {
+        "title": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 820,
+            "clientHeight": 820
+          },
+          "focusable": [
+            "button «Открыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.seal-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)",
+            "ember на circle.art-gold (4000 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "beforeunload",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "error",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart",
+                "unhandledrejection"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.seal-button[data-testid=open-book] «Открыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        },
+        "primal": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 820,
+            "clientHeight": 820
+          },
+          "focusable": [
+            "button «Закрыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.ghost-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "beforeunload",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "error",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart",
+                "unhandledrejection"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.ghost-button[data-testid=close-book] «Закрыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        }
+      },
+      "cardClickChangedDom": false,
+      "returnedToTitle": true
+    },
+    {
+      "server": "dev",
+      "size": "phone-landscape-844x390",
+      "console": [
+        {
+          "phase": "title",
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "phase": "title",
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "pages": {
+        "title": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 366,
+            "clientHeight": 366
+          },
+          "focusable": [
+            "button «Открыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.seal-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)",
+            "ember на circle.art-gold (4000 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "beforeunload",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "error",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart",
+                "unhandledrejection"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.seal-button[data-testid=open-book] «Открыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        },
+        "primal": {
+          "title": "Книга последнего алхимика",
+          "platform": "local",
+          "ready": "true",
+          "docOverflow": {
+            "x": 0,
+            "y": 0
+          },
+          "pageInnerScroll": {
+            "scrollHeight": 488,
+            "clientHeight": 366
+          },
+          "focusable": [
+            "button «Закрыть книгу» tabindex=0"
+          ],
+          "pointer": [
+            "button.ghost-button"
+          ],
+          "animations": [
+            "candle на main.desk::before (5500 мс, повторов: Infinity, running)"
+          ],
+          "listeners": [
+            {
+              "target": "window",
+              "events": [
+                "__playwright_global_listeners_check__",
+                "auxclick",
+                "beforeunload",
+                "click",
+                "contextmenu",
+                "dblclick",
+                "error",
+                "mousedown",
+                "mousemove",
+                "mouseup",
+                "pointerdown",
+                "pointerup",
+                "touchcancel",
+                "touchend",
+                "touchstart",
+                "unhandledrejection"
+              ]
+            },
+            {
+              "target": "document",
+              "events": [
+                "contextmenu",
+                "dragstart",
+                "gesturechange",
+                "gesturestart",
+                "visibilitychange"
+              ]
+            },
+            {
+              "target": "button.ghost-button[data-testid=close-book] «Закрыть книгу»",
+              "events": [
+                "click"
+              ]
+            }
+          ]
+        }
+      },
+      "cardClickChangedDom": false,
+      "returnedToTitle": true
+    }
+  ]
+}
