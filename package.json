@@ -19,7 +19,8 @@
     "test:e2e": "playwright test",
     "pack": "npm run build && tsx tools/pack-yandex.ts",
     "verify:zip": "tsx tools/verify-zip.ts",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run pack && npm run test:e2e"
+    "check": "npm run lint && npm run typecheck && npm run content:check && npm run test && npm run pack && npm run test:e2e",
+    "content:check": "tsx tools/content-check.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,5 +1,6 @@
 import ruUi from '../../content/locales/ru/ui.json';
 import ruElements from '../../content/locales/ru/elements.json';
+import ruCategories from '../../content/locales/ru/categories.json';
 
 /**
  * Локализация. Тексты лежат в content/locales/<язык>/ и не смешиваются с кодом.
@@ -21,10 +22,11 @@ export interface ElementText {
 export interface Catalog {
   ui: Record<UiKey, string>;
   elements: Record<string, ElementText>;
+  categories: Record<string, string>;
 }
 
 const CATALOGS: Record<Locale, Catalog> = {
-  ru: { ui: ruUi, elements: ruElements },
+  ru: { ui: ruUi, elements: ruElements, categories: ruCategories },
 };
 
 export function isSupportedLocale(value: string): value is Locale {
@@ -41,6 +43,7 @@ export interface Translator {
   readonly locale: Locale;
   t(key: UiKey, params?: Record<string, string | number>): string;
   element(id: string): ElementText;
+  category(id: string): string;
 }
 
 export function createTranslator(locale: Locale, catalogs: Record<Locale, Catalog> = CATALOGS): Translator {
@@ -58,6 +61,9 @@ export function createTranslator(locale: Locale, catalogs: Record<Locale, Catalo
       const text = catalog.elements[id];
       if (!text) throw new Error(`Нет текста элемента "${id}" для языка "${locale}"`);
       return text;
+    },
+    category(id) {
+      return catalog.categories[id] ?? id;
     },
   };
 }

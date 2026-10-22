@@ -1,0 +1,6 @@
+[
+  { "id": "primal", "order": 1 },
+  { "id": "nature", "order": 2 },
+  { "id": "matter", "order": 3 },
+  { "id": "alchemy", "order": 4 }
+]

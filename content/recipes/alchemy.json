@@ -1,0 +1,10 @@
+[
+  { "in": ["sea", "fire"], "out": "salt" },
+  { "in": ["volcano", "fire"], "out": "sulfur" },
+  { "in": ["metal", "water"], "out": "mercury" },
+  { "in": ["mercury", "sulfur"], "out": "cinnabar" },
+  { "in": ["glass", "sand"], "out": "hourglass" },
+  { "in": ["dust", "fire"], "out": "gunpowder" },
+  { "in": ["gunpowder", "fire"], "out": "explosion" },
+  { "in": ["life", "mercury"], "out": "homunculus" }
+]

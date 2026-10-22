@@ -20,9 +20,10 @@ const ELEMENT_ART = import.meta.glob<string>('../../assets/elements/*.svg', {
   eager: true,
 });
 
-function elementArtSource(id: string): string {
-  const source = ELEMENT_ART[`../../assets/elements/${id}.svg`];
-  if (!source) throw new Error(`Нет иллюстрации для элемента "${id}"`);
+/** path — путь из базы контента относительно assets/, например "elements/water.svg". */
+function elementArtSource(path: string): string {
+  const source = ELEMENT_ART[`../../assets/${path}`];
+  if (!source) throw new Error(`Нет иллюстрации "${path}"`);
   return source;
 }
 
@@ -44,8 +45,8 @@ export function uiArt(name: UiArtName, className = '', label?: string): HTMLElem
   return artNode(UI_ART[name], className, label);
 }
 
-export function elementArt(id: string, className = ''): HTMLElement {
-  return artNode(elementArtSource(id), className);
+export function elementArt(path: string, className = ''): HTMLElement {
+  return artNode(elementArtSource(path), className);
 }
 
 /** Вставляет общие SVG-определения (фильтр пера, штриховка) один раз на документ. */

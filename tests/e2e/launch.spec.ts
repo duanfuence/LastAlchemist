@@ -9,9 +9,9 @@ async function waitTurnFinished(page: Page): Promise<void> {
   await expect(page.locator('.page__content')).not.toHaveClass(/is-entering|is-leaving/);
 }
 
-async function openPrimalPage(page: Page, testInfo: Parameters<typeof press>[1]): Promise<void> {
+async function openLabPage(page: Page, testInfo: Parameters<typeof press>[1]): Promise<void> {
   await press(page.getByTestId('open-book'), testInfo);
-  await expect(page.locator('[data-element]')).toHaveCount(4);
+  await expect(page.getByTestId('board')).toBeVisible();
   await waitTurnFinished(page);
 }
 
@@ -127,21 +127,16 @@ test.describe('экран запуска', () => {
     expect(await response.text()).toContain('<svg');
   });
 
-  test('книга открывается на странице четырёх начал и закрывается', async ({ page }, testInfo) => {
+  test('книга открывается на лаборатории и закрывается', async ({ page }, testInfo) => {
     await page.goto('/');
     await waitForReady(page);
-    await openPrimalPage(page, testInfo);
+    await openLabPage(page, testInfo);
 
-    await expect(page.getByRole('heading', { level: 2 })).toHaveText('Четыре начала');
-    for (const name of ['Вода', 'Огонь', 'Земля', 'Воздух']) {
-      await expect(page.getByRole('heading', { level: 3, name })).toBeVisible();
-    }
-    await expect(page.locator('[data-element] svg').first()).toBeVisible();
+    await expect(page.getByTestId('catalog')).toBeVisible();
+    await expect(page.locator('.catalog-item svg').first()).toBeVisible();
     await expectNoHorizontalScroll(page);
 
-    const close = page.getByTestId('close-book');
-    await close.scrollIntoViewIfNeeded();
-    await press(close, testInfo);
+    await press(page.getByTestId('lab-back'), testInfo);
     await expect(page.getByTestId('open-book')).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
@@ -158,60 +153,49 @@ test.describe('экран запуска', () => {
 });
 
 test.describe('раскладка', () => {
-  test('декор не перекрывает текст ни на одной странице и ни при какой прокрутке', async ({ page }, testInfo) => {
+  test('декор не перекрывает текст ни на титуле, ни в лаборатории', async ({ page }, testInfo) => {
     await page.goto('/');
     await waitForReady(page);
     expect(await findDecorOverlaps(page), 'титульная страница').toEqual([]);
 
-    await openPrimalPage(page, testInfo);
-    expect(await findDecorOverlaps(page), 'четыре начала, начало').toEqual([]);
-
-    await page.locator('.page__content').evaluate((node) => {
-      node.scrollTop = node.scrollHeight;
-    });
-    await page.waitForTimeout(150);
-    expect(await findDecorOverlaps(page), 'четыре начала, конец').toEqual([]);
+    await openLabPage(page, testInfo);
+    for (const id of ['water', 'fire', 'earth', 'air']) await press(page.getByTestId(`catalog-${id}`), testInfo);
+    expect(await findDecorOverlaps(page), 'лаборатория').toEqual([]);
   });
 
-  test('если страница не помещается, прокрутка заметна и доводит до кнопки', async ({ page }, testInfo) => {
+  test('если титул не помещается, прокрутка заметна и доводит до кнопки', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone-small', 'проверяется на искусственно низком экране');
+    // Экран ниже любого реального телефона: титул заведомо не помещается
+    await page.setViewportSize({ width: 320, height: 440 });
     await page.goto('/');
     await waitForReady(page);
-    await openPrimalPage(page, testInfo);
 
     const content = page.locator('.page__content');
     const hint = page.getByTestId('scroll-hint');
-    const scrollable = await content.evaluate((node) => node.scrollHeight - node.clientHeight > 2);
+    expect(await content.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeGreaterThan(2);
 
-    if (!scrollable) {
-      await expect(hint).toBeHidden();
-      await expect(page.locator('.page')).not.toHaveAttribute('data-more-below');
-      return;
-    }
-
-    // Есть продолжение: видна подсказка, у нижнего края затухание
     await expect(hint).toBeVisible();
     await expect(page.locator('.page')).toHaveAttribute('data-more-below', '');
     await expectInsideViewport(page, '[data-testid="scroll-hint"]');
 
-    // Подсказка листает страницу
     await press(hint, testInfo);
     await expect.poll(() => content.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
     await expect(page.locator('.page')).toHaveAttribute('data-more-above', '');
 
-    // В конце подсказка исчезает, кнопка возврата целиком видна и работает
     await content.evaluate((node) => {
       node.scrollTop = node.scrollHeight;
     });
     await expect(hint).toBeHidden();
-    const close = page.getByTestId('close-book');
-    const [closeBox, viewBox] = await Promise.all([close.boundingBox(), content.boundingBox()]);
-    expect(closeBox && viewBox).toBeTruthy();
-    if (closeBox && viewBox) {
-      expect(closeBox.y).toBeGreaterThanOrEqual(viewBox.y);
-      expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(viewBox.y + viewBox.height);
+    const open = page.getByTestId('open-book');
+    const [openBox, viewBox] = await Promise.all([open.boundingBox(), content.boundingBox()]);
+    expect(openBox && viewBox).toBeTruthy();
+    if (openBox && viewBox) {
+      expect(openBox.y).toBeGreaterThanOrEqual(viewBox.y);
+      expect(openBox.y + openBox.height).toBeLessThanOrEqual(viewBox.y + viewBox.height);
     }
-    await press(close, testInfo);
-    await expect(page.getByTestId('open-book')).toBeVisible();
+    await press(open, testInfo);
+    await expect(page.getByTestId('board')).toBeVisible();
+    await expect(hint).toBeHidden();
   });
 
   test('при повороте экрана раскладка перестраивается', async ({ page }, testInfo) => {

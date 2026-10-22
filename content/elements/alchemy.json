@@ -1,0 +1,11 @@
+[
+  { "id": "energy", "category": "alchemy", "art": "elements/energy.svg" },
+  { "id": "salt", "category": "alchemy", "art": "elements/salt.svg", "final": true },
+  { "id": "sulfur", "category": "alchemy", "art": "elements/sulfur.svg" },
+  { "id": "mercury", "category": "alchemy", "art": "elements/mercury.svg" },
+  { "id": "cinnabar", "category": "alchemy", "art": "elements/cinnabar.svg", "final": true },
+  { "id": "gunpowder", "category": "alchemy", "art": "elements/gunpowder.svg" },
+  { "id": "explosion", "category": "alchemy", "art": "elements/explosion.svg", "final": true },
+  { "id": "hourglass", "category": "alchemy", "art": "elements/hourglass.svg", "final": true },
+  { "id": "homunculus", "category": "alchemy", "art": "elements/homunculus.svg", "secret": true, "final": true }
+]

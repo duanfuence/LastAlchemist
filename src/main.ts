@@ -11,12 +11,17 @@ import './ui/styles/base.css';
 import './ui/styles/art.css';
 import './ui/styles/book.css';
 import './ui/styles/screens.css';
+import './ui/styles/lab.css';
 
+import { loadContent } from './content';
+import { GameSession } from './game/GameSession';
 import { createTranslator, resolveLocale } from './i18n';
+import { LocalSaveStore, getBrowserStorage } from './persistence/LocalSaveStore';
 import { createPlatform } from './platform';
 import { installArtDefinitions } from './ui/art';
 import { Book } from './ui/Book';
 import { blockBrowserGestures } from './ui/guards';
+import { LabView } from './ui/lab/LabView';
 
 const FONT_WAIT_LIMIT_MS = 2500;
 
@@ -57,9 +62,29 @@ async function bootstrap(): Promise<void> {
     visibility: document,
   });
 
-  const book = new Book(i18n);
+  // База рецептов проверяется при сборке (npm run content:check); здесь — страховка для разработки
+  const { pack, issues } = loadContent();
+  for (const issue of issues) console.error('Ошибка базы контента:', issue.message);
+
+  let book: Book | null = null;
+  const store = new LocalSaveStore(getBrowserStorage(), 400, () => {
+    book?.notify(i18n.t('notice.storageUnavailable'));
+  });
+  const session = new GameSession(pack, store);
+  // Незаписанный прогресс сохраняется при сворачивании и закрытии страницы
+  const flush = (): void => session.flush();
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flush();
+  });
+
+  book = new Book(i18n, {
+    createLab: (onExit) => new LabView({ session, i18n, onExit }),
+  });
   root.replaceChildren(book.root);
   book.show('title');
+  if (session.loadStatus === 'corrupted') book.notify(i18n.t('notice.corrupted'));
+  if (store.unavailable) book.notify(i18n.t('notice.storageUnavailable'));
 
   const platform = await platformReady;
   platform.onPauseChange((paused) => {

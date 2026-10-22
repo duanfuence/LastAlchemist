@@ -1,0 +1,6 @@
+[
+  { "id": "water", "category": "primal", "art": "elements/water.svg", "starting": true },
+  { "id": "fire", "category": "primal", "art": "elements/fire.svg", "starting": true },
+  { "id": "earth", "category": "primal", "art": "elements/earth.svg", "starting": true },
+  { "id": "air", "category": "primal", "art": "elements/air.svg", "starting": true }
+]

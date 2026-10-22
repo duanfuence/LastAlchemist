@@ -1,0 +1,12 @@
+[
+  { "id": "steam", "category": "matter", "art": "elements/steam.svg" },
+  { "id": "mud", "category": "matter", "art": "elements/mud.svg" },
+  { "id": "lava", "category": "matter", "art": "elements/lava.svg" },
+  { "id": "stone", "category": "matter", "art": "elements/stone.svg" },
+  { "id": "dust", "category": "matter", "art": "elements/dust.svg" },
+  { "id": "sand", "category": "matter", "art": "elements/sand.svg" },
+  { "id": "metal", "category": "matter", "art": "elements/metal.svg" },
+  { "id": "glass", "category": "matter", "art": "elements/glass.svg" },
+  { "id": "ash", "category": "matter", "art": "elements/ash.svg", "final": true },
+  { "id": "brick", "category": "matter", "art": "elements/brick.svg", "final": true }
+]

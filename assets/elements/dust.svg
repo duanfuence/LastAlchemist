@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <g class="art-ink" filter="url(#ink-wobble)">
+    <path d="M18 82 C40 62 70 92 98 66 M26 98 C50 86 76 106 106 88" class="art-line-thin"/>
+    <g class="art-ink-fill">
+      <circle cx="34" cy="58" r="2.6"/><circle cx="46" cy="46" r="1.8"/><circle cx="60" cy="56" r="3"/>
+      <circle cx="72" cy="42" r="2"/><circle cx="86" cy="52" r="2.8"/><circle cx="52" cy="70" r="1.6"/>
+      <circle cx="68" cy="66" r="2.2"/><circle cx="84" cy="74" r="1.6"/><circle cx="40" cy="74" r="2"/>
+      <circle cx="98" cy="38" r="1.6"/><circle cx="28" cy="42" r="1.5"/><circle cx="62" cy="30" r="1.8"/>
+    </g>
+    <path d="M48 58 C54 50 64 50 70 56" class="art-wash-earth art-line-thin"/>
+  </g>
+</svg>

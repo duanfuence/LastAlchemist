@@ -1,0 +1,690 @@
+/* ===== Лаборатория: стол алхимика ===== */
+
+/* Над книгой — полоса на столе: название, счётчик открытий, действия */
+.desk[data-mode='lab'] {
+  grid-template-rows: auto minmax(0, 1fr);
+  row-gap: 8px;
+}
+
+.desk-bar {
+  width: min(100%, 1400px);
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 20px);
+  min-height: 40px;
+  color: var(--parchment);
+}
+
+.desk-bar__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(1.05rem, 2.2vmin, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+}
+
+.desk-bar__counter {
+  flex: 0 0 auto;
+  margin: 0;
+  font-variant: small-caps;
+  font-size: clamp(1rem, 2vmin, 1.2rem);
+  letter-spacing: 0.05em;
+  color: var(--parchment-light);
+}
+
+.desk-bar__count {
+  font-weight: 700;
+  color: var(--gold-light);
+}
+
+.desk-bar__counter.is-bumped .desk-bar__count {
+  animation: bump 700ms ease-out;
+}
+
+@keyframes bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35); color: #f3d98f; }
+  100% { transform: scale(1); }
+}
+
+.desk-bar__count {
+  display: inline-block;
+}
+
+.desk-bar__secrets {
+  color: var(--parchment-shadow);
+}
+
+.desk-bar__button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0.2em 0.9em 0.3em;
+  border: 1px solid rgb(234 217 184 / 0.45);
+  border-radius: 4px;
+  background: rgb(234 217 184 / 0.06);
+  color: var(--parchment-light);
+  font-size: 1rem;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.desk-bar__button:hover {
+  background: rgb(234 217 184 / 0.16);
+}
+
+.desk-bar__arrow {
+  margin-right: 0.35em;
+  font-size: 1.3em;
+  line-height: 1;
+}
+
+.desk-bar__narrow {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .desk-bar__title,
+  .desk-bar__wide {
+    display: none;
+  }
+
+  .desk-bar__narrow {
+    display: inline;
+  }
+
+  .desk-bar__counter {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .desk-bar__arrow {
+    margin-right: 0;
+  }
+}
+
+/* Страница в режиме лаборатории не прокручивается: прокручивается только список */
+.page[data-page='lab'] .page__content {
+  overflow: hidden;
+  padding: 0;
+}
+
+.lab {
+  --item-size: 58px;
+  --catalog-size: 50px;
+  --caption-space: 3.4em;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ----- Список элементов ----- */
+.catalog {
+  order: 2;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid rgb(93 70 50 / 0.35);
+  padding-top: 6px;
+  transition: background-color 150ms ease;
+}
+
+.catalog.is-drop-remove {
+  background-color: rgb(110 42 38 / 0.12);
+}
+
+.catalog__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.catalog__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+.catalog__count {
+  flex: 1 1 auto;
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+}
+
+.catalog__toggle {
+  min-height: 36px;
+  padding: 0 0.6em;
+  border: none;
+  background: none;
+  color: var(--burgundy);
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.catalog__scroll {
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--parchment-shadow) transparent;
+}
+
+.catalog__list {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 2px 6px;
+  list-style: none;
+}
+
+.catalog__group {
+  display: none;
+}
+
+/* Свёрнутая лента (одностраничная раскладка): свежие открытия первыми, чтобы они были под рукой */
+@media (orientation: portrait), (max-width: 639px) {
+  .catalog:not([data-expanded]) .catalog__entry {
+    order: calc(var(--recent, 0) * -1);
+  }
+}
+
+.catalog-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: calc(var(--catalog-size) + 16px);
+  padding: 4px 2px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  cursor: grab;
+  /* Горизонтальная лента: браузер листает её по горизонтали, вертикальный жест — перенос на стол */
+  touch-action: pan-x;
+}
+
+.catalog-item:hover {
+  background: rgb(255 248 230 / 0.45);
+}
+
+.catalog-item .medal {
+  --medal-size: var(--catalog-size);
+}
+
+.catalog-item__name {
+  max-width: 100%;
+  font-size: 0.86rem;
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+  text-align: center;
+  /* Длинные названия переносятся на вторую строку, а не обрезаются */
+  overflow-wrap: anywhere;
+}
+
+/* Только что открытый элемент отмечен золотым ободком, пока его не используют */
+.catalog-item.is-fresh .medal {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgb(217 182 101 / 0.8);
+}
+
+/* Развёрнутый список на телефоне: сетка с вертикальной прокруткой */
+.catalog[data-expanded] {
+  flex-basis: 58%;
+}
+
+.catalog[data-expanded] .catalog__scroll {
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.catalog[data-expanded] .catalog__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--catalog-size) + 22px), 1fr));
+}
+
+.catalog[data-expanded] .catalog__group {
+  display: block;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  font-family: var(--font-hand);
+  color: var(--burgundy);
+  font-size: 1.05rem;
+}
+
+.catalog[data-expanded] .catalog-item {
+  width: auto;
+  touch-action: pan-y;
+}
+
+/* ----- Рабочий стол ----- */
+.board {
+  order: 1;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 45%, rgb(255 248 230 / 0.35), transparent 70%);
+  box-shadow: inset 0 0 0 1px rgb(93 70 50 / 0.18);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.board__emblem {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: min(70%, 420px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0.09;
+  pointer-events: none;
+}
+
+.board__items {
+  position: absolute;
+  /* Нижняя полоса — под подпись стола; элементы её не занимают */
+  inset: 0 0 var(--caption-space) 0;
+}
+
+.board-item {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  /* Точка привязки — центр медальона */
+  transform: translate(-50%, calc(var(--item-size) / -2));
+  cursor: grab;
+  touch-action: none;
+}
+
+.board-item .medal {
+  --medal-size: var(--item-size);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(250 241 220 / 0.95) 60%, rgb(243 231 204 / 0.85));
+  box-shadow: 0 2px 6px rgb(60 40 20 / 0.25);
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+.board-item__name {
+  width: max-content;
+  max-width: calc(var(--item-size) * 1.6);
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgb(243 231 204 / 0.8);
+  font-size: 0.86rem;
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.board-item:focus-visible {
+  outline: none;
+}
+
+.board-item:focus-visible .medal {
+  box-shadow: 0 0 0 3px var(--gold), 0 2px 6px rgb(60 40 20 / 0.25);
+}
+
+.board-item.is-selected .medal {
+  box-shadow: 0 0 0 3px var(--burgundy), 0 0 14px rgb(110 42 38 / 0.45);
+  transform: scale(1.06);
+}
+
+.board-item.is-target .medal {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 16px rgb(217 182 101 / 0.9);
+  transform: scale(1.1);
+}
+
+.board-item.is-dragging {
+  z-index: 1000 !important;
+  cursor: grabbing;
+}
+
+.board-item.is-dragging .medal {
+  box-shadow: 0 10px 18px rgb(60 40 20 / 0.35);
+  transform: scale(1.08);
+}
+
+/* Соединяемые элементы сливаются в точку */
+.board-item.is-merging {
+  pointer-events: none;
+  transition: left 160ms ease, top 160ms ease, opacity 200ms ease, transform 200ms ease;
+  opacity: 0;
+  transform: translate(-50%, calc(var(--item-size) / -2)) scale(0.4);
+}
+
+/* Появление результата */
+.board-item.is-born .medal,
+.board-item.is-placed .medal {
+  animation: born 420ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+/* Новое открытие: появление и золотое сияние */
+.board-item.is-discovery .medal {
+  animation:
+    born 480ms cubic-bezier(0.2, 1.4, 0.4, 1),
+    glow 2200ms ease-out;
+}
+
+@keyframes born {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes glow {
+  0%, 30% { box-shadow: 0 0 0 3px var(--gold), 0 0 26px 6px rgb(217 182 101 / 0.95); }
+  100% { box-shadow: 0 0 0 0 transparent, 0 2px 6px rgb(60 40 20 / 0.25); }
+}
+
+/* Нет рецепта: элемент вздрагивает */
+.board-item.is-rejected .medal {
+  animation: shake 360ms ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-4deg); }
+  40% { transform: translateX(5px) rotate(3deg); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Подпись под столом: подсказки и описание выбранного элемента */
+.board__caption {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  min-height: 1.4em;
+  pointer-events: none;
+}
+
+.board__caption-text {
+  flex: 1 1 18em;
+  max-width: 60ch;
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  text-align: center;
+  text-shadow: 0 0 6px var(--parchment-light);
+}
+
+.board__remove {
+  flex: 0 0 auto;
+  min-height: 36px;
+  font-size: 0.95rem;
+  pointer-events: auto;
+}
+
+/* ----- Медальон элемента ----- */
+.medal {
+  --medal-size: 56px;
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: var(--medal-size);
+  height: var(--medal-size);
+  border-radius: 50%;
+}
+
+.medal > .art {
+  position: absolute;
+  inset: 0;
+}
+
+.medal > .medal__figure {
+  inset: 10%;
+}
+
+/* На мелких рисунках «дрожание пера» незаметно, а перерисовка фильтра дорога при перетаскивании */
+.medal .art-ink {
+  filter: none;
+}
+
+.medal .medal__figure .art-line { stroke-width: 3; }
+.medal .medal__figure .art-line-thin { stroke-width: 1.8; }
+
+/* Образ элемента под пальцем при переносе из списка */
+.drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2000;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.drag-ghost .medal {
+  --medal-size: var(--item-size, 60px);
+  margin: calc(var(--medal-size) / -2) 0 0 calc(var(--medal-size) / -2);
+  border-radius: 50%;
+  background: rgb(250 241 220 / 0.95);
+  box-shadow: 0 10px 18px rgb(60 40 20 / 0.35);
+}
+
+/* ----- Уведомление об открытии ----- */
+.toast-host {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 1500;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 8px;
+  border-radius: 999px;
+  background: rgb(250 241 220 / 0.97);
+  box-shadow: 0 4px 14px rgb(60 40 20 / 0.3), inset 0 0 0 1px rgb(93 70 50 / 0.3);
+  white-space: nowrap;
+  animation: toast-in 260ms ease-out;
+}
+
+.toast .medal {
+  --medal-size: 40px;
+}
+
+.toast__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.toast__label {
+  font-family: var(--font-hand);
+  font-size: 1rem;
+  color: var(--burgundy);
+}
+
+.toast__name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.toast--discovery {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 18px rgb(217 182 101 / 0.7), 0 4px 14px rgb(60 40 20 / 0.3);
+}
+
+.toast--known .toast__label {
+  color: var(--ink-muted);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ----- Сообщения поверх книги ----- */
+.desk-notices {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(92%, 560px);
+  transform: translateX(-50%);
+}
+
+.desk-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 6px;
+  background: var(--parchment-light);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.45), inset 0 0 0 2px var(--burgundy);
+  color: var(--ink);
+}
+
+.desk-notice__text {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.desk-notice__close {
+  min-width: 36px;
+  min-height: 36px;
+  border: none;
+  background: none;
+  color: var(--burgundy);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ===== Разворот (горизонтальные экраны): список — левая страница, стол — правая ===== */
+@media (orientation: landscape) and (min-width: 640px) {
+  .lab {
+    --item-size: 54px;
+    --catalog-size: 46px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--spine-gap);
+  }
+
+  .catalog {
+    order: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .catalog__toggle {
+    display: none;
+  }
+
+  .catalog__scroll {
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--catalog-fade, 0px)), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--catalog-fade, 0px)), transparent);
+  }
+
+  .catalog[data-more-below] {
+    --catalog-fade: 28px;
+  }
+
+  .catalog__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(calc(var(--catalog-size) + 26px), 1fr));
+    align-content: start;
+  }
+
+  .catalog__group {
+    display: block;
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    font-family: var(--font-hand);
+    font-size: 1.05rem;
+    color: var(--burgundy);
+  }
+
+  .catalog-item {
+    width: auto;
+    /* Вертикальный список: браузер прокручивает его, горизонтальный жест — перенос на стол */
+    touch-action: pan-y;
+  }
+
+  .board {
+    order: 0;
+  }
+}
+
+/* Большой разворот (ПК, планшет в горизонтальной ориентации) */
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) {
+  .lab {
+    --item-size: clamp(64px, 8.5vmin, 84px);
+    --catalog-size: clamp(54px, 6.5vmin, 66px);
+  }
+
+  .catalog-item__name,
+  .board-item__name {
+    font-size: 0.95rem;
+  }
+
+  .board__caption-text {
+    font-size: 1.1rem;
+  }
+}
+
+/* Планшет в портретной ориентации: крупнее элементы и лента */
+@media (orientation: portrait) and (min-width: 700px) {
+  .lab {
+    --item-size: 72px;
+    --catalog-size: 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-item.is-merging {
+    transition: none;
+  }
+
+  .board-item .medal,
+  .board-item.is-born .medal,
+  .board-item.is-placed .medal,
+  .board-item.is-discovery .medal,
+  .board-item.is-rejected .medal,
+  .toast {
+    animation: none;
+  }
+}

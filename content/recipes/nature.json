@@ -1,0 +1,10 @@
+[
+  { "in": ["steam", "air"], "out": "cloud" },
+  { "in": ["cloud", "water"], "out": "rain" },
+  { "in": ["cloud", "energy"], "out": "storm" },
+  { "in": ["rain", "earth"], "out": "plant" },
+  { "in": ["mud", "plant"], "out": "swamp" },
+  { "in": ["swamp", "energy"], "out": "life" },
+  { "in": ["lava", "earth"], "out": "volcano" },
+  { "in": ["plant", "fire"], "out": "ash" }
+]

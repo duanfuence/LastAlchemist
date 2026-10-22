@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <g class="art-ink" filter="url(#ink-wobble)">
+    <path d="M14 108 L46 46 H82 L114 108 Z" class="art-wash-stone art-line"/>
+    <path d="M82 46 L114 108 H94 Z" fill="url(#ink-hatch)" stroke="none"/>
+    <path d="M46 46 C54 52 74 52 82 46" class="art-line"/>
+    <path d="M58 50 C56 64 62 72 54 88 C60 86 66 78 68 66 C70 74 74 82 80 86 C76 72 70 62 70 50 Z" class="art-wash-fire art-line-thin"/>
+    <path d="M60 40 C52 32 60 24 56 14 M72 40 C80 30 70 22 78 12" class="art-line-thin"/>
+  </g>
+</svg>

@@ -43,89 +43,9 @@
   to { fill: var(--gold-light); }
 }
 
-/* ===== Страница четырёх начал ===== */
-.primal-page {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(10px, 2.2vmin, 22px);
-}
-
-/* В одностраничной раскладке пометка и кнопка идут после карточек */
-.primal-page__intro {
-  display: contents;
-}
-
-.element-grid { order: 1; }
-.primal-page__note,
-.primal-page__close { order: 2; }
-
-.primal-page .title {
-  font-size: clamp(1.7rem, 6vmin, 2.6rem);
-}
-
-.element-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(12px, 2.6vmin, 28px) clamp(12px, 3vmin, 28px);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.element-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.element-card__art {
-  position: relative;
-  flex-shrink: 0;
-  width: clamp(68px, 19vw, 120px);
-  aspect-ratio: 1;
-}
-
-.element-card__art > .art {
-  position: absolute;
-  inset: 0;
-}
-
-.element-card__art > .art--figure {
-  inset: 9%;
-}
-
-.element-card__text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.element-card__name {
-  margin: 0;
-  font-size: clamp(1.15rem, 3.6vmin, 1.4rem);
-  font-weight: 700;
-  font-variant: small-caps;
-  letter-spacing: 0.06em;
-}
-
-.element-card__desc {
-  margin: 0;
-  max-width: 30ch;
-  font-size: clamp(0.95rem, 3.9vw, 1.05rem);
-  line-height: 1.35;
-  color: var(--ink-soft);
-}
-
 /* ===== Разворот: горизонтальные экраны от 640 px ===== */
 @media (orientation: landscape) and (min-width: 640px) {
-  .title-page,
-  .primal-page {
+  .title-page {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: var(--spine-gap);
@@ -144,39 +64,9 @@
   .title-page .lead {
     font-size: clamp(1.05rem, 2.9vmin, 1.55rem);
   }
-
-  .primal-page__intro {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: clamp(10px, 2.4vmin, 22px);
-  }
-
-  .primal-page .title {
-    font-size: clamp(1.7rem, 6vmin, 3.4rem);
-  }
-
-  .element-card__art {
-    width: clamp(76px, 15vmin, 140px);
-  }
-
-  .element-card__desc {
-    font-size: clamp(0.95rem, 2vmin, 1.12rem);
-  }
 }
 
-/*
- * Левая страница остаётся на виду, пока листаются карточки. Только там, где она гарантированно
- * помещается по высоте: иначе её нижняя часть с кнопкой стала бы недоступна.
- */
-@media (orientation: landscape) and (min-width: 640px) and (min-height: 380px) {
-  .primal-page__intro {
-    position: sticky;
-    top: 0;
-  }
-}
-
-/* Высокий разворот (ПК, планшет): страница большая — текст и рисунки крупнее */
+/* Высокий разворот (ПК, планшет): страница большая — текст крупнее */
 @media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) {
   .lead {
     font-size: clamp(1.15rem, 2.7vmin, 1.65rem);
@@ -185,21 +75,9 @@
   .hand-note {
     font-size: clamp(1.2rem, 2.6vmin, 1.6rem);
   }
-
-  .element-card__art {
-    width: clamp(96px, 16vmin, 160px);
-  }
-
-  .element-card__name {
-    font-size: clamp(1.25rem, 2.6vmin, 1.6rem);
-  }
-
-  .element-card__desc {
-    font-size: clamp(1.05rem, 2.4vmin, 1.35rem);
-  }
 }
 
-/* Низкий горизонтальный экран (телефон): карточки — строками, рисунок слева от текста */
+/* Низкий горизонтальный экран (телефон) */
 @media (orientation: landscape) and (min-width: 640px) and (max-height: 540px) {
   .title-page__plate {
     gap: 8px;
@@ -208,36 +86,11 @@
   .title-page__text {
     gap: 14px;
   }
-
-  .element-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-
-  .element-card {
-    flex-direction: row;
-    gap: 12px;
-    text-align: left;
-  }
-
-  .element-card__art {
-    width: 64px;
-  }
-
-  .element-card__text {
-    gap: 2px;
-  }
-
-  .element-card__desc {
-    max-width: none;
-    font-size: 0.95rem;
-  }
 }
 
 /* Очень низкий горизонтальный экран (≈360 px): ужимаем крупный текст, чтобы титул помещался целиком */
 @media (orientation: landscape) and (min-width: 640px) and (max-height: 420px) {
-  .title-page .title,
-  .primal-page .title {
+  .title-page .title {
     font-size: 1.7rem;
   }
 

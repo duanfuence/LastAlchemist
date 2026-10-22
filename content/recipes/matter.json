@@ -1,0 +1,8 @@
+[
+  { "in": ["lava", "water"], "out": "stone" },
+  { "in": ["stone", "fire"], "out": "metal" },
+  { "in": ["stone", "air"], "out": "sand" },
+  { "in": ["sea", "stone"], "out": "sand" },
+  { "in": ["sand", "fire"], "out": "glass" },
+  { "in": ["mud", "fire"], "out": "brick" }
+]

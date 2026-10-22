@@ -25,6 +25,7 @@ describe('createTranslator', () => {
   const catalog: Catalog = {
     ui: { ...getCatalog('ru').ui, 'launch.footnote': 'Найдено {count} из {total}' },
     elements: { water: { name: 'Вода', description: 'Описание' } },
+    categories: { primal: 'Первоначала' },
   };
   const i18n = createTranslator('ru', { ru: catalog });
 
@@ -38,6 +39,11 @@ describe('createTranslator', () => {
 
   it('сообщает об отсутствующем тексте элемента', () => {
     expect(() => i18n.element('unknown')).toThrow(/unknown/);
+  });
+
+  it('называет категории и не падает на неизвестной', () => {
+    expect(i18n.category('primal')).toBe('Первоначала');
+    expect(i18n.category('nowhere')).toBe('nowhere');
   });
 });
 

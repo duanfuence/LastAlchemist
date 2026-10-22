@@ -20,6 +20,19 @@
   --wash-fire: #c98a5a;
   --wash-earth: #a68d68;
   --wash-air: #c5c6b4;
+  --wash-stone: #a39a8b;
+  --wash-moss: #8d9b6b;
+  --wash-mud: #8f775a;
+  --wash-sand: #d2b985;
+  --wash-metal: #8e979b;
+  --wash-glass: #bccdc9;
+  --wash-ash: #a49d94;
+  --wash-brick: #b97f5e;
+  --wash-salt: #ece6d6;
+  --wash-sulfur: #d4b95b;
+  --wash-mercury: #bcc0c3;
+  --wash-cinnabar: #b5574a;
+  --wash-life: #d3a491;
 
   --font-serif: 'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
   --font-hand: 'Marck Script', 'Segoe Script', cursive;

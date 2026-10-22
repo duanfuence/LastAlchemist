@@ -1,0 +1,11 @@
+[
+  { "id": "rain", "category": "nature", "art": "elements/rain.svg" },
+  { "id": "cloud", "category": "nature", "art": "elements/cloud.svg" },
+  { "id": "wind", "category": "nature", "art": "elements/wind.svg", "final": true },
+  { "id": "storm", "category": "nature", "art": "elements/storm.svg", "final": true },
+  { "id": "sea", "category": "nature", "art": "elements/sea.svg" },
+  { "id": "plant", "category": "nature", "art": "elements/plant.svg" },
+  { "id": "swamp", "category": "nature", "art": "elements/swamp.svg" },
+  { "id": "volcano", "category": "nature", "art": "elements/volcano.svg" },
+  { "id": "life", "category": "nature", "art": "elements/life.svg" }
+]

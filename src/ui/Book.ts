@@ -1,11 +1,16 @@
 import type { Translator } from '../i18n';
 import { uiArt } from './art';
 import { el } from './dom';
-import { renderPrimalPage } from './screens/PrimalPage';
+import type { LabView } from './lab/LabView';
 import { renderTitlePage } from './screens/TitlePage';
 import { ScrollEdgeWatcher } from './scrollEdges';
 
-export type BookPage = 'title' | 'primal';
+export type BookPage = 'title' | 'lab';
+
+export interface BookOptions {
+  /** Создаёт лабораторию при первом открытии книги; дальше она переиспользуется. */
+  createLab(onExit: () => void): LabView;
+}
 
 const prefersReducedMotion = (): boolean =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -36,18 +41,26 @@ function afterOwnAnimation(node: HTMLElement, fallbackMs = 1500): Promise<void> 
 export class Book {
   readonly root: HTMLElement;
   private readonly content: HTMLElement;
+  private readonly page: HTMLElement;
   private readonly scrollEdges: ScrollEdgeWatcher;
+  private readonly notices: HTMLElement;
+  private lab: LabView | null = null;
   private current: BookPage | null = null;
   private turning = false;
 
-  constructor(private readonly i18n: Translator) {
+  constructor(
+    private readonly i18n: Translator,
+    private readonly options: BookOptions,
+  ) {
     this.content = el('div', { className: 'page__content' });
     const corners = (['tl', 'tr', 'bl', 'br'] as const).map((pos) =>
       uiArt('corner', `page__corner page__corner--${pos}`),
     );
     const scrollHint = this.createScrollHint();
     const page = el('article', { className: 'page' }, [...corners, this.content, scrollHint]);
-    this.root = el('main', { className: 'desk' }, [page]);
+    this.page = page;
+    this.notices = el('div', { className: 'desk-notices', attrs: { 'data-testid': 'notices' } });
+    this.root = el('main', { className: 'desk' }, [page, this.notices]);
 
     this.scrollEdges = new ScrollEdgeWatcher(this.content, page);
     this.scrollEdges.onChange(({ moreBelow }) => {
@@ -55,8 +68,23 @@ export class Book {
     });
   }
 
-  get page(): BookPage | null {
+  get currentPage(): BookPage | null {
     return this.current;
+  }
+
+  /** Важное сообщение поверх книги (повреждённое сохранение, недоступное хранилище). */
+  notify(message: string): void {
+    const close = el('button', {
+      className: 'desk-notice__close',
+      text: '×',
+      attrs: { type: 'button', 'aria-label': this.i18n.t('notice.close') },
+    });
+    const notice = el('div', { className: 'desk-notice', attrs: { role: 'alert', 'data-testid': 'notice' } }, [
+      el('p', { className: 'desk-notice__text', text: message }),
+      close,
+    ]);
+    close.addEventListener('click', () => notice.remove());
+    this.notices.append(notice);
   }
 
   show(page: BookPage): void {
@@ -78,10 +106,18 @@ export class Book {
   }
 
   private swap(page: BookPage, animate: boolean): void {
-    const view =
-      page === 'title'
-        ? renderTitlePage(this.i18n, { onOpen: () => this.show('primal') })
-        : renderPrimalPage(this.i18n, { onClose: () => this.show('title') });
+    let view: HTMLElement;
+    if (page === 'lab') {
+      this.lab ??= this.options.createLab(() => this.show('title'));
+      view = this.lab.root;
+      this.root.insertBefore(this.lab.bar, this.page);
+    } else {
+      this.lab?.detach();
+      this.lab?.bar.remove();
+      view = renderTitlePage(this.i18n, { onOpen: () => this.show('lab') });
+    }
+    this.root.dataset['mode'] = page;
+    this.page.dataset['page'] = page;
     this.content.replaceChildren(view);
     this.content.scrollTop = 0;
     this.content.dataset['page'] = page;
