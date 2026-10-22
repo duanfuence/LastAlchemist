@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <g class="art-ink" filter="url(#ink-wobble)">
+    <circle cx="100" cy="100" r="94" class="art-line-bold"/>
+    <circle cx="100" cy="100" r="88" class="art-line-thin"/>
+    <circle cx="100" cy="100" r="80" class="art-line-thin" stroke-dasharray="1.5 4.2"/>
+    <!-- Квадрат и треугольник, вписанные в круг -->
+    <rect x="47" y="47" width="106" height="106" class="art-line"/>
+    <path d="M100 47 L153 153 L47 153 Z" class="art-line"/>
+    <circle cx="100" cy="120" r="32" class="art-line"/>
+    <!-- Солнце-золото в центре -->
+    <circle cx="100" cy="120" r="11" class="art-gold"/>
+    <circle cx="100" cy="120" r="2.6" class="art-ink-fill"/>
+    <!-- Символы четырёх стихий: огонь, воздух, вода, земля -->
+    <g class="art-line">
+      <path d="M92 39 L108 39 L100 25 Z"/>
+      <path d="M159 107 L175 107 L167 93 Z M157 101.5 H177"/>
+      <path d="M92 161 L108 161 L100 175 Z"/>
+      <path d="M25 93 L41 93 L33 107 Z M23 98.5 H43"/>
+    </g>
+    <!-- Насечки внешнего кольца -->
+    <g class="art-line-thin">
+      <path d="M100 6 V12 M100 188 V194 M6 100 H12 M188 100 H194"/>
+      <path d="M33.5 33.5 L38 38 M166.5 33.5 L162 38 M33.5 166.5 L38 162 M166.5 166.5 L162 162"/>
+    </g>
+  </g>
+</svg>

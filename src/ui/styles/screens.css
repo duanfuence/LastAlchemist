@@ -1,0 +1,122 @@
+/* Титульная страница */
+.title-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: clamp(8px, 2vmin, 18px);
+}
+
+.title-page__emblem {
+  width: min(44vmin, 30dvh, 250px);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+
+.title-page__emblem .art-gold {
+  animation: ember 4s ease-in-out infinite alternate;
+}
+
+@keyframes ember {
+  from { fill: var(--gold); }
+  to { fill: var(--gold-light); }
+}
+
+.title-page__heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.6vmin, 12px);
+}
+
+.title-page__text {
+  display: contents;
+}
+
+/* Телефон в ландшафте: эмблема слева, текст справа */
+@media (orientation: landscape) and (max-height: 540px) {
+  .title-page {
+    flex-direction: row;
+    justify-content: center;
+    gap: 5vw;
+  }
+
+  .title-page__emblem {
+    width: min(62dvh, 40vw);
+  }
+
+  .title-page > .overline {
+    display: none;
+  }
+
+  .title-page__text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    max-width: 52%;
+  }
+}
+
+/* Страница четырёх начал */
+.primal-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.4vmin, 20px);
+}
+
+.primal-page .title {
+  font-size: clamp(1.6rem, 6vmin, 2.6rem);
+}
+
+.element-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: clamp(10px, 2.4vmin, 22px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.element-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.element-card__art {
+  position: relative;
+  width: clamp(72px, 20vmin, 112px);
+  aspect-ratio: 1;
+}
+
+.element-card__art > .art {
+  position: absolute;
+  inset: 0;
+}
+
+.element-card__art > .art--figure {
+  inset: 9%;
+}
+
+.element-card__name {
+  margin: 4px 0 0;
+  font-size: clamp(1.1rem, 3.6vmin, 1.35rem);
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.element-card__desc {
+  margin: 0;
+  font-size: clamp(0.88rem, 2.7vmin, 1rem);
+  line-height: 1.3;
+  color: var(--ink-soft);
+}

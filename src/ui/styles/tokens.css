@@ -1,0 +1,36 @@
+/* Палитра и типографика дневника алхимика. Все цвета задаются здесь. */
+:root {
+  --desk: #1f1712;
+  --desk-glow: #3a2a1e;
+  --parchment: #ead9b8;
+  --parchment-light: #f3e7cc;
+  --parchment-shadow: #c9b088;
+  --ink: #3b2a1d;
+  --ink-soft: #5d4632;
+  --ink-faded: #8a7158;
+  --burgundy: #6e2a26;
+  --burgundy-dark: #4f1c19;
+  --moss: #4f5b39;
+  --gold: #b48a3c;
+  --gold-light: #d9b665;
+
+  --wash-water: #8fa39a;
+  --wash-fire: #c98a5a;
+  --wash-earth: #a68d68;
+  --wash-air: #c5c6b4;
+
+  --font-serif: 'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --font-hand: 'Marck Script', 'Segoe Script', cursive;
+
+  --radius-page: 6px;
+  --ease-page: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --duration-page: 520ms;
+
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-page: 1ms;
+  }
+}

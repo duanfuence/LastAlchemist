@@ -1,0 +1,189 @@
+/* Стол и страница книги */
+.desk {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+/* Тёплый отсвет свечи на столе */
+.desk::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 35%, rgb(217 182 101 / 0.16), transparent 60%);
+  animation: candle 5.5s ease-in-out infinite alternate;
+}
+
+@keyframes candle {
+  0% { opacity: 0.75; }
+  40% { opacity: 1; }
+  70% { opacity: 0.85; }
+  100% { opacity: 0.95; }
+}
+
+.page {
+  position: relative;
+  width: min(100%, 720px);
+  height: min(100%, 980px);
+  border-radius: var(--radius-page);
+  background-color: var(--parchment);
+  background-image:
+    radial-gradient(ellipse at 50% 45%, var(--parchment-light) 0%, transparent 65%),
+    radial-gradient(circle at 12% 88%, rgb(140 100 50 / 0.18), transparent 22%),
+    radial-gradient(circle at 92% 8%, rgb(140 100 50 / 0.14), transparent 18%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.12 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  box-shadow:
+    inset 0 0 60px rgb(120 84 40 / 0.45),
+    inset 0 0 12px rgb(90 60 30 / 0.35),
+    0 18px 50px rgb(0 0 0 / 0.55),
+    0 2px 6px rgb(0 0 0 / 0.4);
+  overflow: hidden;
+  isolation: isolate;
+  --corner: clamp(44px, 11vmin, 80px);
+}
+
+.page__corner {
+  position: absolute;
+  width: var(--corner);
+  aspect-ratio: 1;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.page__corner--tl { top: 8px; left: 8px; }
+.page__corner--tr { top: 8px; right: 8px; transform: scaleX(-1); }
+.page__corner--bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+.page__corner--br { bottom: 8px; right: 8px; transform: scale(-1, -1); }
+
+.page__content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--parchment-shadow) transparent;
+  padding-block: max(28px, calc(var(--corner) * 0.7));
+  padding-inline: max(20px, calc(var(--corner) * 0.8));
+}
+
+.page__content.is-entering {
+  animation: page-in var(--duration-page) var(--ease-page) both;
+}
+
+.page__content.is-leaving {
+  animation: page-out calc(var(--duration-page) * 0.6) ease-in both;
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateX(3%) rotateY(-6deg); filter: blur(2px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes page-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(-3%) rotateY(6deg); }
+}
+
+/* Типографика страниц */
+.overline {
+  margin: 0;
+  font-size: clamp(0.8rem, 2.6vmin, 1rem);
+  font-variant: small-caps;
+  letter-spacing: 0.14em;
+  color: var(--ink-faded);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(1.9rem, 7vmin, 3.3rem);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgb(255 245 220 / 0.5);
+  text-wrap: balance;
+}
+
+.title::first-letter {
+  color: var(--burgundy);
+}
+
+.lead {
+  margin: 0;
+  max-width: 32ch;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.02rem, 3.2vmin, 1.3rem);
+  text-align: center;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+
+.hand-note {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: clamp(1.05rem, 3.4vmin, 1.35rem);
+  color: var(--burgundy);
+  text-align: center;
+  transform: rotate(-1.5deg);
+}
+
+.divider {
+  width: min(70%, 260px);
+  height: auto;
+  aspect-ratio: 10 / 1;
+}
+
+/* Кнопка-печать */
+.seal-button {
+  position: relative;
+  min-height: 48px;
+  min-width: 200px;
+  padding: 0.55em 1.6em 0.6em;
+  border: none;
+  border-radius: 40% 46% 42% 48% / 70% 64% 72% 66%;
+  background: radial-gradient(circle at 35% 30%, #8a3a33, var(--burgundy) 55%, var(--burgundy-dark));
+  color: var(--parchment-light);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 3.4vmin, 1.25rem);
+  letter-spacing: 0.06em;
+  box-shadow:
+    inset 0 0 0 2px rgb(217 182 101 / 0.55),
+    inset 0 -3px 6px rgb(0 0 0 / 0.35),
+    0 3px 8px rgb(60 20 10 / 0.45);
+  cursor: pointer;
+  transition: transform 120ms ease, filter 160ms ease;
+}
+
+.seal-button:hover {
+  filter: brightness(1.08);
+}
+
+.seal-button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.ghost-button {
+  min-height: 44px;
+  padding: 0.3em 1em;
+  border: 1px solid var(--ink-faded);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.ghost-button:hover {
+  background: rgb(255 245 220 / 0.35);
+}
