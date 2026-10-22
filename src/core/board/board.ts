@@ -105,8 +105,14 @@ export function findFreeSpot(
   const isFree = (x: number, y: number): boolean =>
     items.every((item) => Math.hypot((item.x - x) * width, (item.y - y) * height) >= minDistance);
 
+  const clearance = (x: number, y: number): number =>
+    items.reduce((min, item) => Math.min(min, Math.hypot((item.x - x) * width, (item.y - y) * height)), Infinity);
+
   const start = clampToBoard(preferred.x, preferred.y, geometry);
   if (isFree(start.x, start.y)) return start;
+  // Если свободного места нет, кладём туда, где просторнее всего, а не стопкой в одну точку
+  let best = start;
+  let bestClearance = clearance(start.x, start.y);
   const step = itemSize * 0.6;
   for (let ring = 1; ring <= 40; ring += 1) {
     const radius = ring * step;
@@ -119,9 +125,14 @@ export function findFreeSpot(
         geometry,
       );
       if (isFree(spot.x, spot.y)) return spot;
+      const room = clearance(spot.x, spot.y);
+      if (room > bestClearance) {
+        best = spot;
+        bestClearance = room;
+      }
     }
   }
-  return start;
+  return best;
 }
 
 /** Элемент под точкой сброса: ближайший центр в пределах радиуса совпадения. */

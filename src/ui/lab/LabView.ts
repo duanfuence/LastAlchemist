@@ -5,6 +5,7 @@ import {
   type BoardGeometry,
   type BoardItem,
 } from '../../core/board/board';
+import type { RecipeDef } from '../../core/content/types';
 import type { CombineReport, CombineSource, GameSession } from '../../game/GameSession';
 import type { Translator } from '../../i18n';
 import { uiArt } from '../art';
@@ -24,11 +25,16 @@ export interface LabDeps {
 
 /** Длительность исчезновения соединяемых элементов (согласована с CSS). */
 const MERGE_MS = 200;
+/** Удержание пальца, после которого элемент из вкладного листа можно нести на стол. */
+const HOLD_TO_DRAG_MS = 280;
 /** Сколько держится сообщение о неудаче или открытии, прежде чем вернуть подсказку. */
 const MESSAGE_MS = 4000;
 
 const prefersReducedMotion = (): boolean =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Разворот книги: список — левая страница, вкладной лист не нужен. Совпадает с медиазапросом в CSS. */
+const SPREAD_QUERY = '(orientation: landscape) and (min-width: 640px)';
 
 /**
  * Лаборатория: список открытых элементов, рабочий стол, верхняя панель.
@@ -43,6 +49,11 @@ export class LabView {
   private readonly board: HTMLElement;
   private readonly itemsLayer: HTMLElement;
   private readonly catalog: HTMLElement;
+  private readonly catalogDock: HTMLElement;
+  private readonly sheetContext: HTMLElement;
+  private readonly coach: HTMLElement;
+  /** Рецепт для подсказки первого опыта: первый в базе рецепт из двух разных начальных элементов. */
+  private readonly coachRecipe: RecipeDef | undefined;
   private readonly catalogScroll: HTMLElement;
   private readonly catalogList: HTMLElement;
   private readonly catalogToggle: HTMLButtonElement;
@@ -87,10 +98,14 @@ export class LabView {
       this.counterValue,
       this.counterSecrets,
     ]);
+    // Уведомления об открытиях появляются в панели над книгой и не закрывают стол
     this.bar = el('header', { className: 'desk-bar' }, [
       back,
-      el('p', { className: 'desk-bar__title', text: t('app.title') }),
-      this.counter,
+      el('div', { className: 'desk-bar__center' }, [
+        el('p', { className: 'desk-bar__title', text: t('app.title') }),
+        this.counter,
+        this.toast.root,
+      ]),
       clear,
     ]);
 
@@ -103,14 +118,20 @@ export class LabView {
     this.catalogToggle.addEventListener('click', () => this.toggleCatalog());
     this.catalogList = el('ul', { className: 'catalog__list' });
     this.catalogScroll = el('div', { className: 'catalog__scroll' }, [this.catalogList]);
+    this.sheetContext = el('p', { className: 'catalog__context', attrs: { 'data-testid': 'sheet-context' } });
+    this.sheetContext.hidden = true;
     this.catalog = el('aside', { className: 'catalog', attrs: { 'data-testid': 'catalog' } }, [
       el('div', { className: 'catalog__head' }, [
         el('h2', { className: 'catalog__title', text: t('lab.catalogTitle') }),
         this.catalogCount,
         this.catalogToggle,
       ]),
+      this.sheetContext,
       this.catalogScroll,
     ]);
+    // Место ленты в раскладке: на время открытия вкладного листа его высота фиксируется,
+    // поэтому стол не сжимается и элементы на нём не сдвигаются
+    this.catalogDock = el('div', { className: 'catalog-dock' }, [this.catalog]);
     new ScrollEdgeWatcher(this.catalogScroll, this.catalog).contentChanged();
 
     // Рабочий стол
@@ -125,23 +146,44 @@ export class LabView {
     this.captionRemove.addEventListener('click', () => {
       if (this.selected !== null) this.removeItem(this.selected);
     });
+    this.coachRecipe = this.session.content.recipes.find((recipe) => {
+      const [a, b] = recipe.inputs;
+      return a !== b && this.session.content.startingIds.includes(a) && this.session.content.startingIds.includes(b);
+    });
+    this.coach = el('div', { className: 'board__coach', attrs: { 'data-testid': 'coach', 'aria-live': 'polite' } });
+    this.coach.hidden = true;
     this.board = el('div', {
       className: 'board',
       attrs: { role: 'group', 'aria-label': t('lab.boardLabel'), 'data-testid': 'board' },
     }, [
       uiArt('emblem', 'board__emblem'),
+      this.coach,
       this.itemsLayer,
-      this.toast.root,
       el('div', { className: 'board__caption', attrs: { 'aria-live': 'polite' } }, [this.captionText, this.captionRemove]),
     ]);
-    // Касание пустого места снимает выделение
     this.board.addEventListener('click', (event) => {
+      // Касание видимой части стола закрывает вкладной лист
+      if (this.sheetOpen) {
+        this.closeSheet();
+        return;
+      }
+      // Касание пустого места снимает выделение
       if (event.target === this.board || event.target === this.itemsLayer) this.select(null);
     });
 
-    this.root = el('section', { className: 'lab', attrs: { 'data-screen': 'lab' } }, [this.catalog, this.board]);
+    this.root = el('section', { className: 'lab', attrs: { 'data-screen': 'lab' } }, [this.catalogDock, this.board]);
     this.root.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') this.select(null);
+      if (event.key !== 'Escape') return;
+      if (this.sheetOpen) {
+        this.closeSheet();
+        this.catalogToggle.focus();
+      } else {
+        this.select(null);
+      }
+    });
+    // При повороте в разворот вкладной лист не нужен: список становится левой страницей
+    window.matchMedia(SPREAD_QUERY).addEventListener('change', (event) => {
+      if (event.matches) this.closeSheet();
     });
 
     this.drag = new DragController<DragSource>({
@@ -184,14 +226,16 @@ export class LabView {
       items.push(el('li', { className: 'catalog__group', text: this.i18n.category(category.id), attrs: { 'aria-hidden': 'true' } }));
       for (const id of ids) {
         const entry = el('li', { className: 'catalog__entry' }, [this.catalogItem(id)]);
-        // Порядок открытия: в свёрнутой ленте свежие элементы показываются первыми
-        entry.style.setProperty('--recent', String(progress.discovered.indexOf(id)));
+        // Свёрнутая лента: свежие открытия первыми, за ними начальные элементы в исходном порядке
+        const start = content.startingIds.indexOf(id);
+        entry.style.setProperty('--order', String(start >= 0 ? start : -progress.discovered.indexOf(id)));
         items.push(entry);
       }
     }
     this.catalogList.replaceChildren(...items);
     this.updateCatalogLabels();
     this.updateCatalogToggle();
+    this.updateCoach();
   }
 
   private catalogItem(elementId: string): HTMLButtonElement {
@@ -201,7 +245,10 @@ export class LabView {
       attrs: { type: 'button', 'data-element': elementId, 'data-testid': `catalog-${elementId}` },
     }, [medal(this.session.content, elementId), el('span', { className: 'catalog-item__name', text: name })]);
     button.addEventListener('click', () => this.activateCatalog(elementId));
-    this.drag.bind(button, () => ({ kind: 'catalog', elementId }));
+    // В открытом листе список прокручивается вертикально, поэтому пальцем элемент берут удержанием
+    this.drag.bind(button, () => ({ kind: 'catalog', elementId }), (pointerType) =>
+      pointerType === 'touch' && this.sheetOpen ? HOLD_TO_DRAG_MS : 0,
+    );
     return button;
   }
 
@@ -229,6 +276,7 @@ export class LabView {
       node.classList.toggle('is-selected', item.uid === this.selected);
     });
     this.board.classList.toggle('is-empty', items.length === 0);
+    this.updateCoach();
   }
 
   private createItemNode(item: BoardItem): HTMLButtonElement {
@@ -278,12 +326,21 @@ export class LabView {
   }
 
   private freeSpot(near?: { x: number; y: number }): { x: number; y: number } {
-    return findFreeSpot(this.session.board.all, this.geometry(true), near);
+    const geometry = this.geometry(true);
+    let preferred = near;
+    // Пока видна записка первого опыта, новые элементы ложатся ниже неё, чтобы не закрыть текст
+    if (!preferred && !this.coach.hidden && geometry.height > 0) {
+      const layer = this.itemsLayer.getBoundingClientRect();
+      const below = (this.coach.getBoundingClientRect().bottom - layer.top + geometry.itemSize * 0.55) / geometry.height;
+      preferred = { x: 0.5, y: Math.min(0.9, Math.max(0.45, below)) };
+    }
+    return findFreeSpot(this.session.board.all, geometry, preferred);
   }
 
   // ---------- Нажатия и клавиатура ----------
 
   private activateCatalog(elementId: string): void {
+    this.closeSheet();
     if (this.selected !== null) {
       const target = this.selected;
       this.combine({ elementId }, { uid: target });
@@ -331,6 +388,8 @@ export class LabView {
     for (const [id, node] of this.itemNodes) node.classList.toggle('is-selected', id === uid);
     this.updateCatalogLabels();
     this.board.classList.toggle('has-selection', uid !== null);
+    this.updateSheetContext();
+    this.updateCoach();
     if (uid === null) {
       this.showHint();
       return;
@@ -345,6 +404,8 @@ export class LabView {
 
   private dragStart(source: DragSource, point: PointerPoint): void {
     this.select(null);
+    // Взятый из листа элемент несут на стол — лист уходит, открывая весь стол
+    this.closeSheet();
     if (source.kind === 'catalog') {
       this.ghost = el('div', { className: 'drag-ghost', attrs: { 'aria-hidden': 'true' } }, [
         medal(this.session.content, source.elementId),
@@ -545,9 +606,40 @@ export class LabView {
     this.catalogList.querySelector(`[data-element="${elementId}"]`)?.classList.remove('is-fresh');
   }
 
+  private get sheetOpen(): boolean {
+    return this.catalog.hasAttribute('data-expanded');
+  }
+
   private toggleCatalog(): void {
-    const expanded = this.catalog.toggleAttribute('data-expanded');
-    this.updateCatalogToggle(expanded);
+    if (this.sheetOpen) this.closeSheet();
+    else this.openSheet();
+  }
+
+  private openSheet(): void {
+    if (this.sheetOpen || window.matchMedia(SPREAD_QUERY).matches) return;
+    this.catalogDock.style.height = `${this.catalogDock.getBoundingClientRect().height}px`;
+    this.catalog.setAttribute('data-expanded', '');
+    this.root.setAttribute('data-sheet-open', '');
+    this.catalogScroll.scrollTo({ top: 0, left: 0 });
+    this.updateSheetContext();
+    this.updateCatalogToggle(true);
+  }
+
+  private closeSheet(): void {
+    if (!this.sheetOpen) return;
+    this.catalog.removeAttribute('data-expanded');
+    this.root.removeAttribute('data-sheet-open');
+    this.catalogDock.style.removeProperty('height');
+    this.updateCatalogToggle(false);
+  }
+
+  /** В открытом листе видно, с каким элементом стола будет соединён выбранный. */
+  private updateSheetContext(): void {
+    const item = this.selected === null ? undefined : this.session.board.get(this.selected);
+    this.sheetContext.hidden = !item;
+    if (item) {
+      this.sheetContext.textContent = this.i18n.t('lab.sheetCombine', { name: this.i18n.element(item.elementId).name });
+    }
   }
 
   private updateCatalogToggle(expanded = this.catalog.hasAttribute('data-expanded')): void {
@@ -555,10 +647,42 @@ export class LabView {
     this.catalogToggle.setAttribute('aria-expanded', String(expanded));
   }
 
+  // ---------- Подсказка первого опыта ----------
+
+  /**
+   * Короткая записка, ведущая к первому открытию. Состояние выводится из прогресса и стола,
+   * отдельного флага нет: после первого открытия записка больше не появляется.
+   */
+  private updateCoach(): void {
+    const recipe = this.coachRecipe;
+    const active = recipe !== undefined && this.session.counts.found === 0;
+    this.coach.hidden = !active;
+    for (const button of this.catalogList.querySelectorAll<HTMLElement>('.catalog-item')) {
+      button.classList.toggle('is-suggested', active && recipe.inputs.includes(button.dataset['element'] ?? ''));
+    }
+    if (!active) return;
+    const [firstId, secondId] = recipe.inputs;
+    const first = this.i18n.element(firstId).name;
+    const second = this.i18n.element(secondId).name;
+    const selected = this.selected === null ? undefined : this.session.board.get(this.selected);
+    const onBoard = this.session.board.all.some((item) => item.elementId === firstId);
+    const step = selected?.elementId === firstId ? 'lab.coachSecond' : onBoard ? 'lab.coachCombine' : 'lab.coachPlace';
+    this.coach.replaceChildren(
+      el('span', { className: 'board__coach-title', text: this.i18n.t('lab.coachTitle', { first, second }) }),
+      el('span', { className: 'board__coach-text', text: this.i18n.t(step, { first, second }) }),
+    );
+    this.coach.dataset['step'] = step.replace('lab.coach', '').toLowerCase();
+  }
+
   // ---------- Подписи и анимации ----------
 
   private showHint(): void {
     if (this.messageTimer) return;
+    // Пока видна записка первого опыта, общая подсказка её не дублирует
+    if (!this.coach.hidden) {
+      this.setCaption('', false);
+      return;
+    }
     const empty = this.session.board.all.length === 0;
     this.setCaption(this.i18n.t(empty ? 'lab.hintEmpty' : 'lab.hintIdle'), false);
   }

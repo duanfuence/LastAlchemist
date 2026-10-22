@@ -22,7 +22,7 @@ test.describe('лаборатория', () => {
     await expect(page.locator('.catalog-item')).toHaveCount(4);
     await expect(page.getByTestId('discovery-count')).toHaveText('0 из 27');
     await expect(boardItems(page)).toHaveCount(0);
-    await expect(page.getByTestId('board-caption')).toContainText('Перенесите стихию на стол');
+    await expect(page.getByTestId('coach')).toContainText('Перенесите стихию «Вода» на стол');
     await expectNoHorizontalOverflow(page);
   });
 

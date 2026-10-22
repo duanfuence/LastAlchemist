@@ -43,7 +43,12 @@ export async function mouseDrag(page: Page, from: Locator, to: { x: number; y: n
 }
 
 /** Перетаскивание пальцем: настоящие сенсорные события Chromium через CDP. */
-export async function touchDrag(page: Page, from: Locator, to: { x: number; y: number }): Promise<void> {
+export async function touchDrag(
+  page: Page,
+  from: Locator,
+  to: { x: number; y: number },
+  holdMs = 0,
+): Promise<void> {
   const start = await medalCenter(from);
   const cdp = await page.context().newCDPSession(page);
   const touch = async (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
@@ -52,6 +57,8 @@ export async function touchDrag(page: Page, from: Locator, to: { x: number; y: n
       touchPoints: type === 'touchEnd' ? [] : [{ x: Math.round(x), y: Math.round(y) }],
     });
   await touch('touchStart', start.x, start.y);
+  // Удержание пальца перед переносом (элементы вкладного листа берутся удержанием)
+  if (holdMs > 0) await page.waitForTimeout(holdMs);
   const steps = 14;
   for (let i = 1; i <= steps; i += 1) {
     await touch('touchMove', start.x + ((to.x - start.x) * i) / steps, start.y + ((to.y - start.y) * i) / steps);

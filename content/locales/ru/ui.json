@@ -17,7 +17,7 @@
   "lab.secrets": "тайных: {count}",
   "lab.catalogTitle": "Элементы",
   "lab.catalogExpand": "Все элементы",
-  "lab.catalogCollapse": "Свернуть",
+  "lab.catalogCollapse": "Закрыть",
   "lab.catalogItemLabel": "{name}: положить на стол",
   "lab.catalogItemCombineLabel": "{name}: соединить с выбранным",
   "lab.boardLabel": "Рабочий стол алхимика",
@@ -35,5 +35,10 @@
   "lab.newRecipe": "Новый способ получить",
   "notice.corrupted": "Записи книги повреждены и не читаются. Начата чистая книга, а старые записи сохранены отдельно.",
   "notice.storageUnavailable": "Браузер не разрешает сохранять прогресс: открытия пропадут после закрытия страницы.",
-  "notice.close": "Закрыть"
+  "notice.close": "Закрыть",
+  "lab.sheetCombine": "Соединить с элементом «{name}» на столе:",
+  "lab.coachTitle": "Первый опыт: {first} + {second}",
+  "lab.coachPlace": "Перенесите стихию «{first}» на стол — или коснитесь её в списке.",
+  "lab.coachCombine": "Теперь положите на неё «{second}» — или коснитесь «{first}» на столе, а затем «{second}».",
+  "lab.coachSecond": "Теперь коснитесь «{second}» — в списке или на столе."
 }

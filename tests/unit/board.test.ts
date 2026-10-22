@@ -67,6 +67,18 @@ describe('геометрия поля', () => {
     expect(distance).toBeGreaterThanOrEqual(geometry.itemSize);
   });
 
+  it('на тесном поле не кладёт элементы стопкой, а выбирает самое просторное место', () => {
+    const small = { width: 200, height: 120, itemSize: 80 };
+    const placed: { x: number; y: number }[] = [];
+    for (let i = 0; i < 6; i += 1) placed.push(findFreeSpot(placed, small));
+    for (let a = 0; a < placed.length; a += 1) {
+      for (let b = a + 1; b < placed.length; b += 1) {
+        const distance = Math.hypot((placed[a]!.x - placed[b]!.x) * 200, (placed[a]!.y - placed[b]!.y) * 120);
+        expect(distance, `элементы ${a} и ${b}`).toBeGreaterThan(20);
+      }
+    }
+  });
+
   it('свободное место детерминировано', () => {
     const items = [{ x: 0.5, y: 0.45 }, { x: 0.6, y: 0.45 }];
     expect(findFreeSpot(items, geometry)).toEqual(findFreeSpot(items, geometry));

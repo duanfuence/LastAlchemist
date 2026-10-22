@@ -22,6 +22,12 @@ export interface PointerPoint {
 /** Порог начала перетаскивания: мышь точнее пальца. */
 const THRESHOLD = { mouse: 4, touch: 9, pen: 6 } as const;
 
+/**
+ * Задержка удержания перед перетаскиванием (мс) для данного типа указателя; 0 — без удержания.
+ * Нужна там, где тот же жест прокручивает список: короткое движение листает, удержание — берёт элемент.
+ */
+export type HoldDelay = (pointerType: string) => number;
+
 interface Pending<S> {
   source: S;
   node: HTMLElement;
@@ -32,11 +38,18 @@ interface Pending<S> {
   offsetY: number;
   threshold: number;
   dragging: boolean;
+  /** Требуется удержание, и оно ещё не завершено. */
+  holding: boolean;
+  holdTimer: ReturnType<typeof setTimeout> | null;
 }
 
 export class DragController<S> {
   private active: Pending<S> | null = null;
   private suppressClick = false;
+  /** Пока элемент взят удержанием, жест не должен прокручивать список под пальцем. */
+  private readonly blockTouchScroll = (event: TouchEvent): void => {
+    if (this.active && !this.active.holding) event.preventDefault();
+  };
 
   constructor(private readonly callbacks: DragCallbacks<S>) {
     // Click после перетаскивания приходит на захвативший указатель элемент — гасим его
@@ -56,8 +69,8 @@ export class DragController<S> {
     return this.active?.dragging ?? false;
   }
 
-  bind(node: HTMLElement, source: () => S): void {
-    node.addEventListener('pointerdown', (event) => this.down(event, node, source()));
+  bind(node: HTMLElement, source: () => S, holdDelay?: HoldDelay): void {
+    node.addEventListener('pointerdown', (event) => this.down(event, node, source(), holdDelay?.(event.pointerType) ?? 0));
     node.addEventListener('pointermove', (event) => this.move(event));
     node.addEventListener('pointerup', (event) => this.up(event));
     node.addEventListener('pointercancel', (event) => this.cancel(event));
@@ -70,11 +83,13 @@ export class DragController<S> {
 
   /** Прерывает текущее перетаскивание (например, при уходе со страницы). */
   abort(): void {
-    if (this.active?.dragging) this.callbacks.onCancel(this.active.source);
-    this.active = null;
+    const active = this.active;
+    if (!active) return;
+    this.finish(active);
+    if (active.dragging) this.callbacks.onCancel(active.source);
   }
 
-  private down(event: PointerEvent, node: HTMLElement, source: S): void {
+  private down(event: PointerEvent, node: HTMLElement, source: S, holdMs: number): void {
     if (this.active) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     // Точка привязки — центр медальона (у элементов стола под ним ещё подпись)
@@ -91,7 +106,26 @@ export class DragController<S> {
       offsetY: event.clientY - (rect.top + rect.height / 2),
       threshold: THRESHOLD[type] ?? THRESHOLD.mouse,
       dragging: false,
+      holding: holdMs > 0,
+      holdTimer: null,
     };
+    if (holdMs > 0) {
+      const pending = this.active;
+      pending.holdTimer = setTimeout(() => {
+        if (this.active !== pending) return;
+        pending.holding = false;
+        pending.holdTimer = null;
+        node.classList.add('is-armed');
+        document.addEventListener('touchmove', this.blockTouchScroll, { passive: false });
+      }, holdMs);
+    }
+  }
+
+  private finish(active: Pending<S>): void {
+    if (active.holdTimer) clearTimeout(active.holdTimer);
+    active.node.classList.remove('is-armed');
+    document.removeEventListener('touchmove', this.blockTouchScroll);
+    if (this.active === active) this.active = null;
   }
 
   private move(event: PointerEvent): void {
@@ -100,6 +134,11 @@ export class DragController<S> {
     if (!active.dragging) {
       const distance = Math.hypot(event.clientX - active.startX, event.clientY - active.startY);
       if (distance < active.threshold) return;
+      if (active.holding) {
+        // Палец двинулся раньше, чем закончилось удержание: это прокрутка, а не перенос
+        this.finish(active);
+        return;
+      }
       active.dragging = true;
       try {
         active.node.setPointerCapture(event.pointerId);
@@ -115,7 +154,7 @@ export class DragController<S> {
   private up(event: PointerEvent): void {
     const active = this.active;
     if (!active || event.pointerId !== active.pointerId) return;
-    this.active = null;
+    this.finish(active);
     if (!active.dragging) return;
     this.suppressClick = true;
     // Если click так и не придёт (указатель отпущен вне элемента), флаг не должен «повиснуть»
@@ -129,7 +168,7 @@ export class DragController<S> {
     const active = this.active;
     if (!active || event.pointerId !== active.pointerId) return;
     // lostpointercapture приходит и после обычного pointerup — к этому моменту active уже сброшен
-    this.active = null;
+    this.finish(active);
     if (active.dragging) this.callbacks.onCancel(active.source);
   }
 
