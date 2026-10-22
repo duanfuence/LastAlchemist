@@ -14,9 +14,12 @@ export function renderTitlePage(i18n: Translator, actions: TitlePageActions): HT
   });
   openButton.addEventListener('click', () => actions.onOpen());
 
+  // Две части страницы: «табличка» с эмблемой и текст. В развороте они расходятся по страницам.
   return el('section', { className: 'title-page', attrs: { 'data-screen': 'title' } }, [
-    el('p', { className: 'overline', text: i18n.t('launch.overline') }),
-    uiArt('emblem', 'title-page__emblem', i18n.t('launch.emblemLabel')),
+    el('div', { className: 'title-page__plate' }, [
+      el('p', { className: 'overline', text: i18n.t('launch.overline') }),
+      uiArt('emblem', 'title-page__emblem', i18n.t('launch.emblemLabel')),
+    ]),
     el('div', { className: 'title-page__text' }, [
       el('div', { className: 'title-page__heading' }, [
         el('h1', { className: 'title', text: i18n.t('app.title') }),

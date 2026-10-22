@@ -3,11 +3,15 @@ import { uiArt } from './art';
 import { el } from './dom';
 import { renderPrimalPage } from './screens/PrimalPage';
 import { renderTitlePage } from './screens/TitlePage';
+import { ScrollEdgeWatcher } from './scrollEdges';
 
 export type BookPage = 'title' | 'primal';
 
 const prefersReducedMotion = (): boolean =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const CHEVRON_SVG =
+  '<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 4.5 L7 9.5 L12 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /**
  * Ждёт окончания собственной анимации элемента (анимации потомков игнорируются).
@@ -32,6 +36,7 @@ function afterOwnAnimation(node: HTMLElement, fallbackMs = 1500): Promise<void> 
 export class Book {
   readonly root: HTMLElement;
   private readonly content: HTMLElement;
+  private readonly scrollEdges: ScrollEdgeWatcher;
   private current: BookPage | null = null;
   private turning = false;
 
@@ -40,9 +45,14 @@ export class Book {
     const corners = (['tl', 'tr', 'bl', 'br'] as const).map((pos) =>
       uiArt('corner', `page__corner page__corner--${pos}`),
     );
-    this.root = el('main', { className: 'desk' }, [
-      el('article', { className: 'page' }, [...corners, this.content]),
-    ]);
+    const scrollHint = this.createScrollHint();
+    const page = el('article', { className: 'page' }, [...corners, this.content, scrollHint]);
+    this.root = el('main', { className: 'desk' }, [page]);
+
+    this.scrollEdges = new ScrollEdgeWatcher(this.content, page);
+    this.scrollEdges.onChange(({ moreBelow }) => {
+      scrollHint.hidden = !moreBelow;
+    });
   }
 
   get page(): BookPage | null {
@@ -75,11 +85,30 @@ export class Book {
     this.content.replaceChildren(view);
     this.content.scrollTop = 0;
     this.content.dataset['page'] = page;
+    this.scrollEdges.contentChanged();
     if (animate) {
       this.content.classList.add('is-entering');
       void afterOwnAnimation(this.content).then(() => this.content.classList.remove('is-entering'));
       // После перелистывания фокус переходит на главное действие новой страницы
       view.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
     }
+  }
+
+  /** Подсказка о продолжении страницы: видна, пока ниже есть содержимое; по нажатию листает. */
+  private createScrollHint(): HTMLButtonElement {
+    const hint = el('button', {
+      className: 'scroll-hint',
+      attrs: { type: 'button', 'aria-label': this.i18n.t('page.scrollHintLabel'), 'data-testid': 'scroll-hint' },
+    });
+    hint.hidden = true;
+    hint.append(el('span', { text: this.i18n.t('page.scrollHint') }));
+    hint.insertAdjacentHTML('beforeend', CHEVRON_SVG);
+    hint.addEventListener('click', () => {
+      this.content.scrollBy({
+        top: Math.round(this.content.clientHeight * 0.75),
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      });
+    });
+    return hint;
   }
 }

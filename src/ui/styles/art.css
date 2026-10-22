@@ -45,3 +45,10 @@
 .art-wash-fire { fill: var(--wash-fire); fill-opacity: 0.55; }
 .art-wash-earth { fill: var(--wash-earth); fill-opacity: 0.6; }
 .art-wash-air { fill: var(--wash-air); fill-opacity: 0.7; }
+
+/*
+ * Рисунок внутри медальона масштабирован меньше кольца — утолщаем его линии,
+ * чтобы штрих рисунка и штрих кольца совпадали по толщине.
+ */
+.art--figure .art-line { stroke-width: 2.6; }
+.art--figure .art-line-thin { stroke-width: 1.5; }

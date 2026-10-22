@@ -1,17 +1,33 @@
-import { expect, test, type Page } from '@playwright/test';
-import { collectConsoleErrors, press, stubYandexSdk } from './fixtures';
+import type { Page } from '@playwright/test';
+import { expect, press, stubYandexSdk, test } from './fixtures';
 
 async function waitForReady(page: Page): Promise<void> {
   await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
 }
 
-async function expectNoPageScroll(page: Page): Promise<void> {
-  const overflow = await page.evaluate(() => ({
-    x: document.documentElement.scrollWidth - window.innerWidth,
-    y: document.documentElement.scrollHeight - window.innerHeight,
-  }));
-  expect(overflow.x).toBeLessThanOrEqual(0);
-  expect(overflow.y).toBeLessThanOrEqual(0);
+async function waitTurnFinished(page: Page): Promise<void> {
+  await expect(page.locator('.page__content')).not.toHaveClass(/is-entering|is-leaving/);
+}
+
+async function openPrimalPage(page: Page, testInfo: Parameters<typeof press>[1]): Promise<void> {
+  await press(page.getByTestId('open-book'), testInfo);
+  await expect(page.locator('[data-element]')).toHaveCount(4);
+  await waitTurnFinished(page);
+}
+
+/** Ни документ, ни область текста не прокручиваются по горизонтали. */
+async function expectNoHorizontalScroll(page: Page): Promise<void> {
+  const overflow = await page.evaluate(() => {
+    const content = document.querySelector<HTMLElement>('.page__content');
+    return {
+      documentX: document.documentElement.scrollWidth - window.innerWidth,
+      documentY: document.documentElement.scrollHeight - window.innerHeight,
+      contentX: content ? content.scrollWidth - content.clientWidth : 0,
+    };
+  });
+  expect(overflow.documentX, 'горизонтальная прокрутка документа').toBeLessThanOrEqual(0);
+  expect(overflow.documentY, 'вертикальная прокрутка документа').toBeLessThanOrEqual(0);
+  expect(overflow.contentX, 'горизонтальная прокрутка страницы книги').toBeLessThanOrEqual(0);
 }
 
 async function expectInsideViewport(page: Page, selector: string): Promise<void> {
@@ -26,9 +42,53 @@ async function expectInsideViewport(page: Page, selector: string): Promise<void>
   expect(box.y + box.height, selector).toBeLessThanOrEqual(viewport.height);
 }
 
+/**
+ * Видимая часть текста и кнопок не заходит в «чернильную» зону угловых орнаментов.
+ * Внутри квадрата уголка рисунок занимает всё, кроме внутренней четверти (от 0,55 стороны),
+ * поэтому пересечение допускается только там.
+ */
+async function findDecorOverlaps(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const content = document.querySelector<HTMLElement>('.page__content');
+    if (!content) return ['нет .page__content'];
+    const viewport = content.getBoundingClientRect();
+    const clip = (r: DOMRect, c: DOMRect) => ({
+      left: Math.max(r.left, c.left),
+      top: Math.max(r.top, c.top),
+      right: Math.min(r.right, c.right),
+      bottom: Math.min(r.bottom, c.bottom),
+    });
+    const texts = [
+      ...Array.from(content.querySelectorAll<HTMLElement>('h1, h2, h3, p, button')).map((el) => ({
+        el,
+        rect: clip(el.getBoundingClientRect(), viewport),
+      })),
+      ...Array.from(document.querySelectorAll<HTMLElement>('[data-testid="scroll-hint"]:not([hidden])')).map(
+        (el) => ({ el, rect: clip(el.getBoundingClientRect(), el.getBoundingClientRect()) }),
+      ),
+    ].filter(({ rect }) => rect.right > rect.left && rect.bottom > rect.top);
+
+    const problems: string[] = [];
+    for (const corner of Array.from(document.querySelectorAll<HTMLElement>('.page__corner'))) {
+      const c = corner.getBoundingClientRect();
+      const size = c.width;
+      const position = corner.className.match(/--(tl|tr|bl|br)/)?.[1] ?? 'tl';
+      for (const { el, rect } of texts) {
+        const i = clip(new DOMRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top), c);
+        if (i.right <= i.left || i.bottom <= i.top) continue;
+        const nearX = position.endsWith('l') ? i.left - c.left : c.right - i.right;
+        const nearY = position.startsWith('t') ? i.top - c.top : c.bottom - i.bottom;
+        if (nearX < size * 0.55 || nearY < size * 0.55) {
+          problems.push(`${el.tagName.toLowerCase()} «${el.textContent?.trim().slice(0, 30)}» заходит на уголок ${position}`);
+        }
+      }
+    }
+    return problems;
+  });
+}
+
 test.describe('экран запуска', () => {
   test('титульная страница помещается в экран без прокрутки', async ({ page }) => {
-    const errors = collectConsoleErrors(page);
     await page.goto('/');
     await waitForReady(page);
 
@@ -37,11 +97,11 @@ test.describe('экран запуска', () => {
     await expect(page.getByRole('img', { name: /Алхимическая эмблема/ })).toBeVisible();
     await expect(page).toHaveTitle('Книга последнего алхимика');
 
-    await expectNoPageScroll(page);
-    for (const selector of ['h1', '[data-testid="open-book"]', '.title-page__emblem', '.hand-note']) {
+    await expectNoHorizontalScroll(page);
+    for (const selector of ['.overline', 'h1', '[data-testid="open-book"]', '.title-page__emblem', '.hand-note']) {
       await expectInsideViewport(page, selector);
     }
-    expect(errors).toEqual([]);
+    await expect(page.getByTestId('scroll-hint')).toBeHidden();
   });
 
   test('все шрифты проекта загружены к моменту готовности', async ({ page }) => {
@@ -58,28 +118,32 @@ test.describe('экран запуска', () => {
     expect(loaded).toEqual([true, true, true, true]);
   });
 
+  test('у игры есть собственная иконка', async ({ page }) => {
+    await page.goto('/');
+    const href = await page.locator('link[rel="icon"]').getAttribute('href');
+    expect(href).toBeTruthy();
+    const response = await page.request.get(new URL(href ?? '', page.url()).toString());
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain('<svg');
+  });
+
   test('книга открывается на странице четырёх начал и закрывается', async ({ page }, testInfo) => {
-    const errors = collectConsoleErrors(page);
     await page.goto('/');
     await waitForReady(page);
+    await openPrimalPage(page, testInfo);
 
-    await press(page.getByTestId('open-book'), testInfo);
-    const cards = page.locator('[data-element]');
-    await expect(cards).toHaveCount(4);
     await expect(page.getByRole('heading', { level: 2 })).toHaveText('Четыре начала');
     for (const name of ['Вода', 'Огонь', 'Земля', 'Воздух']) {
       await expect(page.getByRole('heading', { level: 3, name })).toBeVisible();
     }
-    await expect(cards.locator('svg').first()).toBeVisible();
-    await expectNoPageScroll(page);
+    await expect(page.locator('[data-element] svg').first()).toBeVisible();
+    await expectNoHorizontalScroll(page);
 
-    // Страница может прокручиваться внутри книги, но кнопка возврата доступна
     const close = page.getByTestId('close-book');
     await close.scrollIntoViewIfNeeded();
     await press(close, testInfo);
     await expect(page.getByTestId('open-book')).toBeVisible();
-    await expectNoPageScroll(page);
-    expect(errors).toEqual([]);
+    await expectNoHorizontalScroll(page);
   });
 
   test('контекстное меню браузера отключено', async ({ page }) => {
@@ -93,6 +157,91 @@ test.describe('экран запуска', () => {
   });
 });
 
+test.describe('раскладка', () => {
+  test('декор не перекрывает текст ни на одной странице и ни при какой прокрутке', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await waitForReady(page);
+    expect(await findDecorOverlaps(page), 'титульная страница').toEqual([]);
+
+    await openPrimalPage(page, testInfo);
+    expect(await findDecorOverlaps(page), 'четыре начала, начало').toEqual([]);
+
+    await page.locator('.page__content').evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
+    await page.waitForTimeout(150);
+    expect(await findDecorOverlaps(page), 'четыре начала, конец').toEqual([]);
+  });
+
+  test('если страница не помещается, прокрутка заметна и доводит до кнопки', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await waitForReady(page);
+    await openPrimalPage(page, testInfo);
+
+    const content = page.locator('.page__content');
+    const hint = page.getByTestId('scroll-hint');
+    const scrollable = await content.evaluate((node) => node.scrollHeight - node.clientHeight > 2);
+
+    if (!scrollable) {
+      await expect(hint).toBeHidden();
+      await expect(page.locator('.page')).not.toHaveAttribute('data-more-below');
+      return;
+    }
+
+    // Есть продолжение: видна подсказка, у нижнего края затухание
+    await expect(hint).toBeVisible();
+    await expect(page.locator('.page')).toHaveAttribute('data-more-below', '');
+    await expectInsideViewport(page, '[data-testid="scroll-hint"]');
+
+    // Подсказка листает страницу
+    await press(hint, testInfo);
+    await expect.poll(() => content.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+    await expect(page.locator('.page')).toHaveAttribute('data-more-above', '');
+
+    // В конце подсказка исчезает, кнопка возврата целиком видна и работает
+    await content.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
+    await expect(hint).toBeHidden();
+    const close = page.getByTestId('close-book');
+    const [closeBox, viewBox] = await Promise.all([close.boundingBox(), content.boundingBox()]);
+    expect(closeBox && viewBox).toBeTruthy();
+    if (closeBox && viewBox) {
+      expect(closeBox.y).toBeGreaterThanOrEqual(viewBox.y);
+      expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(viewBox.y + viewBox.height);
+    }
+    await press(close, testInfo);
+    await expect(page.getByTestId('open-book')).toBeVisible();
+  });
+
+  test('при повороте экрана раскладка перестраивается', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone-portrait', 'поворот проверяется на телефоне');
+    await page.goto('/');
+    await waitForReady(page);
+
+    const layout = async () => {
+      const [emblem, title] = await Promise.all([
+        page.locator('.title-page__emblem').boundingBox(),
+        page.locator('h1').boundingBox(),
+      ]);
+      if (!emblem || !title) throw new Error('нет эмблемы или заголовка');
+      if (emblem.y + emblem.height <= title.y) return 'эмблема над заголовком';
+      if (emblem.x + emblem.width <= title.x) return 'эмблема слева от заголовка';
+      return 'другое';
+    };
+
+    expect(await layout()).toBe('эмблема над заголовком');
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect.poll(layout).toBe('эмблема слева от заголовка');
+    await expectNoHorizontalScroll(page);
+    await expectInsideViewport(page, '[data-testid="open-book"]');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(layout).toBe('эмблема над заголовком');
+    await expectNoHorizontalScroll(page);
+  });
+});
+
 test.describe('интеграция с площадкой', () => {
   test('без SDK игра работает на локальной платформе', async ({ page }) => {
     await page.goto('/');
@@ -101,7 +250,6 @@ test.describe('интеграция с площадкой', () => {
   });
 
   test('с SDK вызывает LoadingAPI.ready() один раз после отрисовки', async ({ page }) => {
-    const errors = collectConsoleErrors(page);
     await stubYandexSdk(page);
     await page.goto('/');
     await waitForReady(page);
@@ -111,7 +259,6 @@ test.describe('интеграция с площадкой', () => {
     expect(sdk['initCalls']).toBe(1);
     expect(sdk['readyCalls']).toBe(1);
     expect(sdk['titleVisibleAtReady']).toBe(true);
-    expect(errors).toEqual([]);
   });
 
   test('пауза площадки останавливает анимации', async ({ page }) => {
@@ -134,5 +281,33 @@ test.describe('интеграция с площадкой', () => {
     await emit('game_api_resume');
     await expect(page.locator('html')).not.toHaveAttribute('data-paused');
     expect(await candleState()).toBe('running');
+  });
+});
+
+/**
+ * Проверка самого стража ошибок: эти тесты ОБЯЗАНЫ упасть (test.fail).
+ * Если страж перестанет замечать сбои загрузки, они «пройдут» и Playwright сообщит об ошибке.
+ */
+test.describe('страж ошибок загрузки', () => {
+  test('отсутствующий файл (404) роняет тест', async ({ page }) => {
+    test.fail();
+    await page.goto('/');
+    await waitForReady(page);
+    await page.evaluate(async () => {
+      const image = new Image();
+      image.src = './assets/missing-illustration.png';
+      document.body.append(image);
+      await new Promise((resolve) => {
+        image.onerror = resolve;
+        image.onload = resolve;
+      });
+    });
+  });
+
+  test('сорванная загрузка ресурса роняет тест', async ({ page }) => {
+    test.fail();
+    await page.route('**/*.css', (route) => route.abort('failed'));
+    await page.goto('/');
+    await waitForReady(page);
   });
 });

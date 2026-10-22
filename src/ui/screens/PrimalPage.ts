@@ -17,24 +17,29 @@ export function renderPrimalPage(i18n: Translator, actions: PrimalPageActions): 
         uiArt('medallion'),
         elementArt(id, 'art--figure'),
       ]),
-      el('h3', { className: 'element-card__name', text: text.name }),
-      el('p', { className: 'element-card__desc', text: text.description }),
+      el('div', { className: 'element-card__text' }, [
+        el('h3', { className: 'element-card__name', text: text.name }),
+        el('p', { className: 'element-card__desc', text: text.description }),
+      ]),
     ]);
   });
 
   const closeButton = el('button', {
-    className: 'ghost-button',
+    className: 'ghost-button primal-page__close',
     text: i18n.t('primal.close'),
     attrs: { type: 'button', 'data-testid': 'close-book' },
   });
   closeButton.addEventListener('click', () => actions.onClose());
 
+  // Вступление — левая страница разворота; в одностраничной раскладке пометка и кнопка идут после карточек
   return el('section', { className: 'primal-page', attrs: { 'data-screen': 'primal' } }, [
-    el('h2', { className: 'title', text: i18n.t('primal.title') }),
-    uiArt('divider', 'divider'),
-    el('p', { className: 'lead', text: i18n.t('primal.intro') }),
+    el('div', { className: 'primal-page__intro' }, [
+      el('h2', { className: 'title', text: i18n.t('primal.title') }),
+      uiArt('divider', 'divider'),
+      el('p', { className: 'lead', text: i18n.t('primal.intro') }),
+      el('p', { className: 'hand-note primal-page__note', text: i18n.t('primal.margin') }),
+      closeButton,
+    ]),
     el('ul', { className: 'element-grid' }, cards),
-    el('p', { className: 'hand-note', text: i18n.t('primal.margin') }),
-    closeButton,
   ]);
 }

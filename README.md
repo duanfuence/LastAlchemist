@@ -34,7 +34,7 @@ npm run dev            # сервер разработки: http://localhost:517
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Проверка типов TypeScript |
 | `npm test` | Unit-тесты (Vitest) |
-| `npm run test:e2e` | E2E-тесты в Chromium на 6 размерах экрана (нужна сборка `dist/`) |
+| `npm run test:e2e` | E2E-тесты в Chromium на 7 размерах экрана (нужна сборка `dist/`); любая ошибка консоли или загрузки ресурса, кроме отсутствия `/sdk.js` вне площадки, роняет тест |
 | `npm run check` | Всё вместе: lint, типы, unit, сборка с архивом, e2e |
 
 ### Первый запуск e2e-тестов
@@ -88,6 +88,7 @@ tools/                упаковка и проверка ZIP
 tests/unit/           Vitest
 tests/e2e/            Playwright
 docs/                 архитектура и план
+review/               отчёты визуальных проверок (тяжёлые скриншоты — локально в review/local/, вне Git)
 ```
 
 ## Принятые технические решения этапа 0

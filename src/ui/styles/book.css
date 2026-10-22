@@ -1,11 +1,12 @@
 /* Стол и страница книги */
 .desk {
+  --desk-gap: clamp(12px, 2.6vmin, 32px);
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  padding: max(var(--desk-gap), env(safe-area-inset-top)) max(var(--desk-gap), env(safe-area-inset-right))
+    max(var(--desk-gap), env(safe-area-inset-bottom)) max(var(--desk-gap), env(safe-area-inset-left));
 }
 
 /* Тёплый отсвет свечи на столе */
@@ -25,7 +26,21 @@
   100% { opacity: 0.95; }
 }
 
+/*
+ * Страница. Две раскладки:
+ * - одна страница — портретные и узкие экраны;
+ * - разворот (две страницы с корешком) — горизонтальные экраны от 640 px.
+ */
 .page {
+  --corner: clamp(36px, 9.5vmin, 84px);
+  --corner-offset: 5px;
+  /*
+   * Поле под угловые орнаменты: текст и прокрутка начинаются только за ним.
+   * Рисунок уголка не заходит во внутреннюю зону своего квадрата (дальше 0,55 стороны),
+   * поэтому поле = 0,55 стороны + отступ уголка от края + 2 px запаса.
+   */
+  --frame: calc(var(--corner) * 0.55 + var(--corner-offset) + 2px);
+  --spine-gap: 0px;
   position: relative;
   width: min(100%, 720px);
   height: min(100%, 980px);
@@ -43,7 +58,45 @@
     0 2px 6px rgb(0 0 0 / 0.4);
   overflow: hidden;
   isolation: isolate;
-  --corner: clamp(44px, 11vmin, 80px);
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+  .page {
+    --spine-gap: clamp(40px, 7vw, 120px);
+    width: min(100%, 1400px);
+    height: 100%;
+    max-height: 940px;
+  }
+
+  /* Корешок разворота */
+  .page::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: clamp(28px, 4vw, 56px);
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgb(110 78 40 / 0.14) 35%,
+      rgb(70 48 26 / 0.32) 50%,
+      rgb(110 78 40 / 0.14) 65%,
+      transparent
+    );
+  }
+}
+
+/* На больших экранах разворот не растягивается шире книжных пропорций */
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) {
+  .page {
+    aspect-ratio: 1.6;
+    width: auto;
+    max-width: min(100%, 1400px);
+  }
 }
 
 .page__corner {
@@ -54,22 +107,50 @@
   z-index: 1;
 }
 
-.page__corner--tl { top: 8px; left: 8px; }
-.page__corner--tr { top: 8px; right: 8px; transform: scaleX(-1); }
-.page__corner--bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
-.page__corner--br { bottom: 8px; right: 8px; transform: scale(-1, -1); }
+.page__corner--tl { top: var(--corner-offset); left: var(--corner-offset); }
+.page__corner--tr { top: var(--corner-offset); right: var(--corner-offset); transform: scaleX(-1); }
+.page__corner--bl { bottom: var(--corner-offset); left: var(--corner-offset); transform: scaleY(-1); }
+.page__corner--br { bottom: var(--corner-offset); right: var(--corner-offset); transform: scale(-1, -1); }
 
+/*
+ * Область текста — окно внутри рамки. Прокручиваемое содержимое обрезается краем окна,
+ * а не краем страницы, поэтому никогда не заходит под угловые орнаменты.
+ */
 .page__content {
-  position: relative;
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  position: absolute;
+  inset: var(--frame);
   z-index: 2;
-  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--parchment-shadow) transparent;
-  padding-block: max(28px, calc(var(--corner) * 0.7));
-  padding-inline: max(20px, calc(var(--corner) * 0.8));
+  padding: 6px 4px;
+  /* Мягкое затухание текста у края, за которым есть продолжение */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+}
+
+.page[data-more-above] .page__content {
+  --fade-top: 28px;
+}
+
+.page[data-more-below] .page__content {
+  --fade-bottom: 36px;
 }
 
 .page__content.is-entering {
@@ -90,13 +171,71 @@
   to { opacity: 0; transform: translateX(-3%) rotateY(6deg); }
 }
 
+/* Подсказка «листайте»: видна, только пока ниже есть содержимое */
+.scroll-hint {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: calc(var(--frame) * 0.5);
+  transform: translate(-50%, 50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 32px;
+  padding: 2px 12px 4px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(243 231 204 / 0.92);
+  box-shadow: 0 1px 4px rgb(90 60 30 / 0.3);
+  color: var(--burgundy);
+  font-family: var(--font-hand);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  animation: hint-in 260ms ease-out both;
+}
+
+.scroll-hint[hidden] {
+  display: none;
+}
+
+.scroll-hint svg {
+  width: 14px;
+  height: 14px;
+  animation: hint-bob 1.6s ease-in-out infinite;
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+  /* В развороте прокручивается правая страница, подсказка — под ней */
+  .scroll-hint {
+    left: 75%;
+  }
+}
+
+@keyframes hint-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes hint-bob {
+  0%, 100% { transform: translateY(-1px); }
+  50% { transform: translateY(2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint,
+  .scroll-hint svg {
+    animation: none;
+  }
+}
+
 /* Типографика страниц */
 .overline {
   margin: 0;
-  font-size: clamp(0.8rem, 2.6vmin, 1rem);
+  font-size: clamp(0.85rem, 2.6vmin, 1.05rem);
   font-variant: small-caps;
-  letter-spacing: 0.14em;
-  color: var(--ink-faded);
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
   text-align: center;
 }
 
@@ -121,16 +260,22 @@
   max-width: 32ch;
   font-style: italic;
   font-weight: 500;
-  font-size: clamp(1.02rem, 3.2vmin, 1.3rem);
+  font-size: clamp(1.05rem, 3.2vmin, 1.3rem);
+  line-height: 1.4;
   text-align: center;
   color: var(--ink-soft);
   text-wrap: balance;
 }
 
+/*
+ * Рукописные пометки. Пробелы в Marck Script шире книжных — сужаем межсловный интервал.
+ * Отступ после заглавных букв — особенность рисунка шрифта, настройками он не меняется.
+ */
 .hand-note {
   margin: 0;
   font-family: var(--font-hand);
-  font-size: clamp(1.05rem, 3.4vmin, 1.35rem);
+  font-size: clamp(1.05rem, 3.4vmin, 1.4rem);
+  word-spacing: -0.12em;
   color: var(--burgundy);
   text-align: center;
   transform: rotate(-1.5deg);
@@ -153,7 +298,7 @@
   background: radial-gradient(circle at 35% 30%, #8a3a33, var(--burgundy) 55%, var(--burgundy-dark));
   color: var(--parchment-light);
   font-weight: 700;
-  font-size: clamp(1.05rem, 3.4vmin, 1.25rem);
+  font-size: clamp(1.05rem, 3.4vmin, 1.3rem);
   letter-spacing: 0.06em;
   box-shadow:
     inset 0 0 0 2px rgb(217 182 101 / 0.55),
@@ -171,19 +316,22 @@
   transform: translateY(1px) scale(0.98);
 }
 
+/* Второстепенная кнопка: чернильная рамка, заметнее прежней, но тише печати */
 .ghost-button {
   min-height: 44px;
-  padding: 0.3em 1em;
-  border: 1px solid var(--ink-faded);
+  padding: 0.3em 1.2em 0.4em;
+  border: 1.5px solid var(--ink-soft);
   border-radius: 4px;
-  background: transparent;
-  color: var(--ink-soft);
-  font-size: 1rem;
+  background: rgb(255 248 230 / 0.35);
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 700;
   font-variant: small-caps;
   letter-spacing: 0.08em;
+  box-shadow: inset 0 0 0 3px rgb(234 217 184 / 0.9), inset 0 0 0 4px rgb(93 70 50 / 0.35);
   cursor: pointer;
 }
 
 .ghost-button:hover {
-  background: rgb(255 245 220 / 0.35);
+  background: rgb(255 248 230 / 0.7);
 }

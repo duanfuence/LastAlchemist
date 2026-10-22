@@ -21,7 +21,8 @@ export default defineConfig({
     launchOptions: executablePath ? { executablePath } : {},
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 768 } } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'desktop-small', use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 768 } } },
     { name: 'desktop-fhd', use: { ...devices['Desktop Chrome'], viewport: { width: 1920, height: 1080 } } },
     {
       name: 'phone-small',
@@ -34,6 +35,10 @@ export default defineConfig({
     {
       name: 'phone-landscape',
       use: { ...devices['Desktop Chrome'], viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 },
+    },
+    {
+      name: 'phone-landscape-low',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 640, height: 360 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
     },
     {
       name: 'tablet',

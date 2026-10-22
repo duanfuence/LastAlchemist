@@ -19,6 +19,8 @@ function yandexSdk(): Plugin {
 export default defineConfig(({ mode }) => ({
   // Относительные пути: игра открывается из архива в iframe площадки
   base: './',
+  // Статическая раздача, как на площадке: отсутствующий файл — 404, а не подмена index.html
+  appType: 'mpa',
   plugins: mode === 'yandex' ? [yandexSdk()] : [],
   build: {
     outDir: 'dist',
