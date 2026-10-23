@@ -232,7 +232,8 @@
     font-size: 0.92rem;
   }
 
-  .catalog__toggle {
+  .catalog__toggle,
+  .catalog__hint {
     white-space: nowrap;
     padding: 0 0.3em;
   }
@@ -323,7 +324,55 @@
   font-size: 0.95rem;
 }
 
+.catalog__hint {
+  min-height: 36px;
+  padding: 0 0.5em;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-family: var(--font-hand);
+  font-size: 1.05rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.catalog__hint:hover,
+.catalog__hint:focus-visible {
+  color: var(--burgundy);
+}
+
+/* Подсказка появилась в подписи стола: строка коротко проступает, как свежие чернила */
+.board__caption-text.is-hinted {
+  animation: hinted 900ms ease-out;
+}
+
+@keyframes hinted {
+  from { opacity: 0.2; color: var(--burgundy); }
+  to { opacity: 1; }
+}
+
+.catalog__toggle-narrow {
+  display: none;
+}
+
+/* Узкий экран: «Подсказка» и «Все элементы» в одной строке не помещаются */
+@media (max-width: 440px) {
+  .catalog__toggle-wide {
+    display: none;
+  }
+
+  /* В раскрытом листе выбирают элемент; подсказка вернётся, когда лист закроют */
+  .catalog[data-expanded] .catalog__hint {
+    display: none;
+  }
+
+  .catalog__toggle-narrow {
+    display: inline;
+  }
+}
+
 .catalog__toggle {
+  white-space: nowrap;
   min-height: 36px;
   padding: 0 0.6em;
   border: none;
@@ -408,6 +457,30 @@
 }
 
 /* Подсказка первого опыта: стихии для первого соединения мягко подсвечены */
+/*
+ * Исследованный элемент: из него больше ничего нового не получить. Рисунок чуть выцветает,
+ * после названия — маленькая галочка пером. Элемент по-прежнему работает как обычно.
+ */
+.catalog-item.is-explored .medal__figure {
+  opacity: 0.62;
+  filter: saturate(0.55);
+}
+
+.catalog-item.is-explored .catalog-item__name {
+  color: var(--ink-faded);
+}
+
+.catalog-item.is-explored .catalog-item__name::after {
+  content: '';
+  display: inline-block;
+  width: 0.3em;
+  height: 0.58em;
+  margin-left: 0.28em;
+  border: solid currentColor;
+  border-width: 0 0.11em 0.11em 0;
+  transform: translateY(-0.12em) rotate(40deg);
+}
+
 .catalog-item.is-suggested .medal::before {
   content: '';
   position: absolute;
@@ -1261,6 +1334,7 @@
   .board-item .medal__shadow,
   .board-item__name,
   .catalog-item.is-suggested .medal::before,
+  .board__caption-text.is-hinted,
   .catalog[data-expanded],
   .toast {
     animation: none;

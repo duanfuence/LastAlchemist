@@ -9,6 +9,7 @@ import {
   type DiscoveryCounts,
   type Progress,
 } from '../core/progress/progress';
+import { HintGuide, exploredElements, type HintResult } from '../core/progress/exploration';
 import { parseSave, serializeSave, type LoadStatus, type PreservedData } from '../persistence/save';
 import type { LocalSaveStore } from '../persistence/LocalSaveStore';
 
@@ -38,6 +39,8 @@ export interface CombineReport {
 export class GameSession {
   readonly book: RecipeBook;
   readonly board = new BoardModel();
+  /** Подсказки ведут только к открытиям, которые можно сделать из уже открытых элементов. */
+  private readonly guide: HintGuide;
   private progressState: Progress;
   /** Данные записи, которые эта версия не понимает: возвращаются в запись при каждом сохранении. */
   private readonly preserved: PreservedData;
@@ -49,6 +52,7 @@ export class GameSession {
     private readonly store?: LocalSaveStore,
   ) {
     this.book = new RecipeBook(content);
+    this.guide = new HintGuide(content);
     const raw = store?.read() ?? null;
     const loaded = parseSave(raw, content);
     this.loadStatus = loaded.status;
@@ -82,6 +86,21 @@ export class GameSession {
 
   get counts(): DiscoveryCounts {
     return countDiscoveries(this.content, this.progressState);
+  }
+
+  /** Элементы, из которых больше не получить ни одного нового открытия. */
+  get explored(): ReadonlySet<string> {
+    return exploredElements(this.content, this.progressState);
+  }
+
+  /** Следующий шаг подсказки: сначала один ингредиент, затем пара. Прогресс не меняет. */
+  hint(): HintResult {
+    return this.guide.next(this.progressState);
+  }
+
+  /** Ингредиенты, уже названные подсказкой, пока её открытие не сделано (для подсветки в списке). */
+  get hintedElements(): readonly string[] {
+    return this.guide.revealedElements(this.progressState);
   }
 
   isDiscovered(id: string): boolean {

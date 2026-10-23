@@ -71,6 +71,11 @@ export class LabView {
   private readonly catalogList: HTMLElement;
   private readonly catalogToggle: HTMLButtonElement;
   private readonly catalogCount: HTMLElement;
+  private readonly hintButton: HTMLButtonElement;
+  /** Текст текущей подсказки: держится в подписи стола, пока подсказанное открытие не сделано. */
+  private hintText: string | null = null;
+  /** Исследованные элементы на момент последней отрисовки: чтобы сообщить о новых. */
+  private explored: ReadonlySet<string> = new Set();
   private readonly counterValue: HTMLElement;
   private readonly counterSecrets: HTMLElement;
   private readonly counter: HTMLElement;
@@ -131,6 +136,12 @@ export class LabView {
       attrs: { type: 'button', 'aria-expanded': 'false', 'data-testid': 'catalog-toggle' },
     });
     this.catalogToggle.addEventListener('click', () => this.toggleCatalog());
+    this.hintButton = el('button', {
+      className: 'catalog__hint',
+      text: t('lab.hint'),
+      attrs: { type: 'button', 'aria-label': t('lab.hintLabel'), 'data-testid': 'hint' },
+    });
+    this.hintButton.addEventListener('click', () => this.showNextHint());
     this.catalogList = el('ul', { className: 'catalog__list' });
     this.catalogScroll = el('div', { className: 'catalog__scroll' }, [this.catalogList]);
     this.sheetContext = el('p', { className: 'catalog__context', attrs: { 'data-testid': 'sheet-context' } });
@@ -139,6 +150,7 @@ export class LabView {
       el('div', { className: 'catalog__head' }, [
         el('h2', { className: 'catalog__title', text: t('lab.catalogTitle') }),
         this.catalogCount,
+        this.hintButton,
         this.catalogToggle,
       ]),
       this.sheetContext,
@@ -208,6 +220,7 @@ export class LabView {
       onCancel: (source) => this.dragCancel(source),
     });
 
+    this.explored = this.session.explored;
     this.renderCatalog();
     this.renderBoard();
     this.renderCounter();
@@ -255,8 +268,9 @@ export class LabView {
 
   private catalogItem(elementId: string): HTMLButtonElement {
     const name = this.i18n.element(elementId).name;
+    const explored = this.explored.has(elementId) ? ' is-explored' : '';
     const button = el('button', {
-      className: `catalog-item${this.fresh.has(elementId) ? ' is-fresh' : ''}`,
+      className: `catalog-item${this.fresh.has(elementId) ? ' is-fresh' : ''}${explored}`,
       attrs: { type: 'button', 'data-element': elementId, 'data-testid': `catalog-${elementId}` },
     }, [medal(this.session.content, elementId), el('span', { className: 'catalog-item__name', text: name })]);
     button.addEventListener('click', () => this.activateCatalog(elementId));
@@ -271,7 +285,8 @@ export class LabView {
     const key = this.selected === null ? 'lab.catalogItemLabel' : 'lab.catalogItemCombineLabel';
     for (const button of this.catalogList.querySelectorAll<HTMLButtonElement>('.catalog-item')) {
       const id = button.dataset['element'] ?? '';
-      button.setAttribute('aria-label', this.i18n.t(key, { name: this.i18n.element(id).name }));
+      const label = this.i18n.t(key, { name: this.i18n.element(id).name });
+      button.setAttribute('aria-label', this.explored.has(id) ? `${label} ${this.i18n.t('lab.exploredLabel')}` : label);
     }
   }
 
@@ -412,7 +427,8 @@ export class LabView {
     const item = this.session.board.get(uid);
     if (!item) return;
     const text = this.i18n.element(item.elementId);
-    this.setCaption(`${text.name}. ${text.description} ${this.i18n.t('lab.hintSelected')}`, true);
+    const explored = this.explored.has(item.elementId) ? ` ${this.i18n.t('lab.exploredNote')}` : '';
+    this.setCaption(`${text.name}. ${text.description}${explored} ${this.i18n.t('lab.hintSelected')}`, true);
   }
 
   // ---------- Перетаскивание ----------
@@ -565,6 +581,9 @@ export class LabView {
     this.useFresh(report.second);
     if (outcome.kind === 'discovery') this.fresh.add(outcome.element);
 
+    const before = this.explored;
+    this.explored = this.session.explored;
+    const newlyExplored = [...this.explored].filter((id) => !before.has(id));
     this.renderBoard();
     this.renderCounter();
     this.renderCatalog();
@@ -592,7 +611,11 @@ export class LabView {
     const text = this.i18n.element(outcome.element);
     this.toast.show(outcome.kind, this.i18n.t(full), this.i18n.t(short), text.name, medal(this.session.content, outcome.element));
     if (outcome.kind === 'discovery') {
-      this.flashMessage(`${text.name}. ${text.description}`);
+      // Сделано подсказанное открытие — подсказка выполнена
+      if (this.session.hintedElements.length === 0) this.hintText = null;
+      const names = newlyExplored.map((id) => this.i18n.element(id).name).join(', ');
+      const explored = names ? ` ${this.i18n.t(newlyExplored.length > 1 ? 'lab.nowExploredMany' : 'lab.nowExplored', { names })}` : '';
+      this.flashMessage(`${text.name}. ${text.description}${explored}`);
     } else {
       // Известный результат на стол не кладётся: подпись объясняет, куда делись участники
       const name = (id: string): string => this.i18n.element(id).name;
@@ -695,7 +718,17 @@ export class LabView {
   }
 
   private updateCatalogToggle(expanded = this.catalog.hasAttribute('data-expanded')): void {
-    this.catalogToggle.textContent = this.i18n.t(expanded ? 'lab.catalogCollapse' : 'lab.catalogExpand');
+    const full = this.i18n.t(expanded ? 'lab.catalogCollapse' : 'lab.catalogExpand');
+    // На узком экране рядом с «Подсказкой» помещается только короткая подпись; полная — для чтения с экрана
+    if (expanded) {
+      this.catalogToggle.textContent = full;
+    } else {
+      this.catalogToggle.replaceChildren(
+        el('span', { className: 'catalog__toggle-wide', text: full }),
+        el('span', { className: 'catalog__toggle-narrow', text: this.i18n.t('lab.catalogExpandShort'), attrs: { 'aria-hidden': 'true' } }),
+      );
+    }
+    this.catalogToggle.setAttribute('aria-label', full);
     this.catalogToggle.setAttribute('aria-expanded', String(expanded));
   }
 
@@ -709,8 +742,10 @@ export class LabView {
     const recipe = this.coachRecipe;
     const active = recipe !== undefined && this.session.counts.found === 0;
     this.coach.hidden = !active;
+    // Подсвечены ингредиенты записки первого опыта или уже названные подсказкой
+    const suggested: readonly string[] = active ? recipe.inputs : this.session.hintedElements;
     for (const button of this.catalogList.querySelectorAll<HTMLElement>('.catalog-item')) {
-      button.classList.toggle('is-suggested', active && recipe.inputs.includes(button.dataset['element'] ?? ''));
+      button.classList.toggle('is-suggested', suggested.includes(button.dataset['element'] ?? ''));
     }
     if (!active) return;
     const [firstId, secondId] = recipe.inputs;
@@ -730,13 +765,43 @@ export class LabView {
 
   private showHint(): void {
     if (this.messageTimer) return;
+    // Подсказка, о которой попросили, держится в подписи, пока её открытие не сделано
+    if (this.hintText && this.session.hintedElements.length > 0) {
+      this.setCaption(this.hintText, false);
+      return;
+    }
     // Пока видна записка первого опыта, общая подсказка её не дублирует
     if (!this.coach.hidden) {
       this.setCaption('', false);
       return;
     }
+    this.hintText = null;
     const empty = this.session.board.all.length === 0;
     this.setCaption(this.i18n.t(empty ? 'lab.hintEmpty' : 'lab.hintIdle'), false);
+  }
+
+  /** Кнопка «Подсказка»: первый раз — один ингредиент, второй — пара; в подписи стола до открытия. */
+  private showNextHint(): void {
+    const hint = this.session.hint();
+    const name = (id: string): string => this.i18n.element(id).name;
+    if (hint.kind === 'complete' || hint.kind === 'stuck') {
+      this.hintText = null;
+      this.updateCoach();
+      this.flashMessage(this.i18n.t(hint.kind === 'complete' ? 'lab.hintComplete' : 'lab.hintStuck'));
+      return;
+    }
+    if (hint.kind === 'ingredient') {
+      this.hintText = this.i18n.t('lab.hintIngredient', { name: name(hint.element) });
+    } else {
+      const key = hint.recipe.ordered ? 'lab.hintPairOrdered' : hint.first === hint.second ? 'lab.hintPairSame' : 'lab.hintPair';
+      this.hintText = this.i18n.t(key, { first: name(hint.first), second: name(hint.second) });
+    }
+    this.updateCoach();
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = null;
+    if (this.selected !== null) this.select(null);
+    this.showHint();
+    this.animate(this.captionText, 'is-hinted');
   }
 
   private setCaption(text: string, withRemove: boolean): void {
