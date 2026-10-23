@@ -437,6 +437,55 @@ test.describe('сохранение', () => {
   });
 });
 
+test.describe('сохранения разных версий', () => {
+  test('книга более новой версии игры читается, но не перезаписывается', async ({ page }, testInfo) => {
+    const newer = JSON.stringify({
+      v: 2,
+      savedAt: 1,
+      discovered: ['water', 'fire', 'earth', 'air', 'steam'],
+      recipes: ['fire|water'],
+      board: [],
+      pages: { future: true },
+    });
+    await page.goto('/');
+    await page.evaluate(([key, value]) => localStorage.setItem(key, value), [SAVE_KEY, newer] as const);
+    await page.reload();
+    await expect(page.getByTestId('notice')).toContainText('более новая версия игры');
+    await press(page.getByTestId('open-book'), testInfo);
+    await expect(page.getByTestId('discovery-count')).toHaveText('1 из 27');
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await press(boardItems(page, 'water'), testInfo);
+    await press(page.getByTestId('catalog-earth'), testInfo);
+    await expect(boardItems(page, 'mud')).toHaveCount(1);
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    await page.waitForTimeout(600);
+    expect(await page.evaluate((key) => localStorage.getItem(key), SAVE_KEY)).toBe(newer);
+  });
+
+  test('сохранение прежней версии игры загружается после обновления без потерь', async ({ page }, testInfo) => {
+    // Формат этапа 1.4 и элемент, которого в этой базе нет (например, из будущего обновления)
+    const legacy = JSON.stringify({
+      v: 1,
+      savedAt: 1792764799008,
+      discovered: ['water', 'fire', 'earth', 'air', 'steam', 'mud', 'philosophers_stone'],
+      recipes: ['fire|water', 'earth|water'],
+      board: [{ id: 'steam', x: 0.5, y: 0.5 }],
+    });
+    await page.goto('/');
+    await page.evaluate(([key, value]) => localStorage.setItem(key, value), [SAVE_KEY, legacy] as const);
+    await page.reload();
+    await expect(page.getByTestId('notice')).toHaveCount(0);
+    await press(page.getByTestId('open-book'), testInfo);
+    await expect(page.getByTestId('discovery-count')).toHaveText('2 из 27');
+    await expect(boardItems(page, 'steam')).toHaveCount(1);
+    await press(page.getByTestId('catalog-air'), testInfo);
+    await waitForSaved(page, '{"id":"air"');
+    const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? 'null') as { discovered: string[] }, SAVE_KEY);
+    expect(saved.discovered).toContain('philosophers_stone');
+    expect(saved.discovered).toContain('mud');
+  });
+});
+
 test.describe('раскладка лаборатории', () => {
   test('нет горизонтального переполнения при полном столе и развёрнутом списке', async ({ page }, testInfo) => {
     await openLab(page, testInfo);

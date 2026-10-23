@@ -245,6 +245,8 @@ export class SoundSystem {
       this.musicDuck = context.createGain();
       this.musicDuck.connect(this.musicBus);
       this.applyVolume();
+      // Жест пришёлся на паузу (игра без фокуса, пауза площадки): контекст создаётся молчащим
+      if (this.paused) void context.suspend().catch(() => undefined);
       return this.loadAll().then(() => this.syncMusic());
     }
     if (!this.paused) void this.context.resume().catch(() => undefined);

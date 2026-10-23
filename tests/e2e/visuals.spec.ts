@@ -251,6 +251,56 @@ test.describe('звук', () => {
     expect((await audio()).loops).toBe(1);
   });
 
+  test('потеря фокуса приостанавливает звук, но не анимации; возвращение — без второй музыки', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      const state = { focused: true, contexts: [] as AudioContext[], loops: 0 };
+      (window as unknown as { __audio: typeof state }).__audio = state;
+      document.hasFocus = () => state.focused;
+      const Original = window.AudioContext;
+      window.AudioContext = class extends Original {
+        constructor(options?: AudioContextOptions) {
+          super(options);
+          state.contexts.push(this);
+        }
+      };
+      const prototype = AudioBufferSourceNode.prototype;
+      const start = Object.getOwnPropertyDescriptor(prototype, 'start')!.value as (this: AudioBufferSourceNode, ...args: number[]) => void;
+      prototype.start = function (this: AudioBufferSourceNode, ...args: number[]) {
+        if (this.loop) state.loops += 1;
+        start.apply(this, args);
+      };
+    });
+    await openLab(page, testInfo);
+    const audio = () =>
+      page.evaluate(() => {
+        const state = (window as unknown as { __audio: { contexts: AudioContext[]; loops: number } }).__audio;
+        return { states: state.contexts.map((c) => c.state), loops: state.loops };
+      });
+    await expect.poll(async () => (await audio()).loops, { timeout: 10_000 }).toBe(1);
+    const setFocus = (focused: boolean) =>
+      page.evaluate((value) => {
+        (window as unknown as { __audio: { focused: boolean } }).__audio.focused = value;
+        window.dispatchEvent(new Event(value ? 'focus' : 'blur'));
+      }, focused);
+
+    await setFocus(false);
+    await expect.poll(async () => (await audio()).states).toEqual(['suspended']);
+    // Повторная потеря фокуса ничего не переключает; анимации книги не замирают
+    await setFocus(false);
+    await expect(page.locator('html')).not.toHaveAttribute('data-paused', '');
+    await setFocus(true);
+    await expect.poll(async () => (await audio()).states).toEqual(['running']);
+    await setFocus(true);
+    expect((await audio()).loops).toBe(1);
+    // Во время паузы звуки эффектов не копятся и не создают новых контекстов
+    await setFocus(false);
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await expect.poll(async () => (await audio()).states).toEqual(['suspended']);
+    await setFocus(true);
+    await expect.poll(async () => (await audio()).states).toEqual(['running']);
+    expect((await audio()).loops).toBe(1);
+  });
+
   test('при выключенной музыке её файл не загружается', async ({ page }, testInfo) => {
     const requested: string[] = [];
     page.on('request', (request) => requested.push(request.url()));

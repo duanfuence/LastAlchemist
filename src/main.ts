@@ -19,6 +19,7 @@ import { GameSession } from './game/GameSession';
 import { createTranslator, resolveLocale } from './i18n';
 import { LocalSaveStore, getBrowserStorage } from './persistence/LocalSaveStore';
 import { createPlatform } from './platform';
+import { PauseState } from './platform/Platform';
 import { installArtDefinitions } from './ui/art';
 import { Atmosphere } from './ui/Atmosphere';
 import { Book } from './ui/Book';
@@ -54,15 +55,18 @@ async function bootstrap(): Promise<void> {
   blockBrowserGestures();
   installArtDefinitions();
 
-  // На первом этапе игра только на русском; язык площадки подключим вместе с английским.
-  const i18n = createTranslator(resolveLocale(document.documentElement.lang));
-  document.title = i18n.t('app.title');
-
-  // Интерфейс рисуется сразу, SDK инициализируется параллельно.
-  const platformReady = createPlatform({
+  // Шрифты грузятся параллельно с SDK площадки
+  const fontsReady = loadFonts();
+  // Язык определяется при запуске через SDK площадки (требование Яндекс Игр 2.14), поэтому
+  // текст появляется после инициализации SDK. Без площадки — язык документа.
+  // Поддерживается только русский: любой другой язык площадки показывает русский интерфейс.
+  const platform = await createPlatform({
     target: import.meta.env.MODE === 'yandex' ? 'yandex' : 'local',
     visibility: document,
   });
+  const i18n = createTranslator(resolveLocale(platform.language ?? document.documentElement.lang));
+  document.documentElement.lang = i18n.locale;
+  document.title = i18n.t('app.title');
 
   // База рецептов проверяется при сборке (npm run content:check); здесь — страховка для разработки
   const { pack, issues } = loadContent();
@@ -97,17 +101,28 @@ async function bootstrap(): Promise<void> {
   });
   root.replaceChildren(book.root);
   book.show('title');
-  if (session.loadStatus === 'corrupted') book.notify(i18n.t('notice.corrupted'));
+  if (session.loadStatus === 'corrupted') book.notify(i18n.t(session.readOnly ? 'notice.corruptedReadOnly' : 'notice.corrupted'));
+  if (session.loadStatus === 'newer') book.notify(i18n.t('notice.newerSave'));
   if (store.unavailable) book.notify(i18n.t('notice.storageUnavailable'));
 
-  const platform = await platformReady;
-  platform.onPauseChange((paused) => {
+  // Пауза площадки и скрытая вкладка останавливают и анимации, и звук.
+  // Потеря фокуса (щелчок вне игры, другое окно) — только звук: требование площадки касается звука.
+  const soundPause = new PauseState();
+  const applyPlatformPause = (paused: boolean): void => {
     document.documentElement.toggleAttribute('data-paused', paused);
-    sound.setPaused(paused);
+    soundPause.set('platform', paused);
+  };
+  applyPlatformPause(platform.paused);
+  platform.onPauseChange(applyPlatformPause);
+  soundPause.trackFocus({
+    hasFocus: () => document.hasFocus(),
+    addEventListener: (type, listener) => window.addEventListener(type, listener),
   });
+  soundPause.subscribe((paused) => sound.setPaused(paused));
+  sound.setPaused(soundPause.paused);
   document.documentElement.dataset['platform'] = platform.kind;
 
-  await loadFonts();
+  await fontsReady;
   platform.gameReady();
   document.documentElement.dataset['ready'] = 'true';
   // Звуки скачиваются после готовности игры, чтобы не мешать первой загрузке

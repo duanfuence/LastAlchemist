@@ -273,6 +273,73 @@ describe('повторное получение уже открытого рез
     warn.mockRestore();
   });
 
+  it('запись более новой версии игры не перезаписывается никакими действиями', () => {
+    const storage = new MemoryStorage();
+    const raw = JSON.stringify({ v: 99, savedAt: 1, discovered: ['water', 'fire', 'earth', 'air', 'steam'], recipes: ['fire|water'], board: [] });
+    storage.setItem(SAVE_KEY, raw);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const session = new GameSession(content, new LocalSaveStore(storage, 0));
+    expect(session.loadStatus).toBe('newer');
+    expect(session.readOnly).toBe(true);
+    // Прогресс читается и игра идёт, но только в памяти
+    expect(session.isDiscovered('steam')).toBe(true);
+    const report = session.combine({ elementId: 'water' }, { uid: session.place('earth', 0.5, 0.5)!.uid })!;
+    expect(report.outcome.kind).toBe('discovery');
+    session.clearBoard();
+    session.flush();
+    expect(storage.getItem(SAVE_KEY)).toBe(raw);
+    expect(storage.getItem(BACKUP_KEY)).toBeNull();
+    warn.mockRestore();
+  });
+
+  it('если резервную копию повреждённой записи сделать нельзя, запись не затирается', () => {
+    const raw = '{"v":1,"discovered":';
+    const storage: StorageLike & { saved: string } = {
+      saved: raw,
+      getItem(key) {
+        return key === SAVE_KEY ? this.saved : null;
+      },
+      setItem(key, value) {
+        if (key !== SAVE_KEY) throw new DOMException('QuotaExceededError');
+        this.saved = value;
+      },
+    };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const session = new GameSession(content, new LocalSaveStore(storage, 0));
+    session.place('water', 0.5, 0.5);
+    session.flush();
+    expect(session.loadStatus).toBe('corrupted');
+    expect(session.readOnly).toBe(true);
+    expect(storage.saved).toBe(raw);
+    warn.mockRestore();
+  });
+
+  it('элементы из более новой базы переживают игру в старой версии', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(SAVE_KEY, JSON.stringify({ v: 1, savedAt: 1, discovered: ['water', 'fire', 'earth', 'air', 'philosophers_stone'], recipes: ['gold|lead'], board: [], journal: [1] }));
+    const session = new GameSession(content, new LocalSaveStore(storage, 0));
+    session.combine({ elementId: 'water' }, { uid: session.place('fire', 0.5, 0.5)!.uid });
+    session.flush();
+    const saved = JSON.parse(storage.getItem(SAVE_KEY)!) as Record<string, unknown>;
+    expect(saved.discovered).toEqual(['water', 'fire', 'earth', 'air', 'steam', 'philosophers_stone']);
+    expect(saved.recipes).toEqual(['fire|water', 'gold|lead']);
+    expect(saved.journal).toEqual([1]);
+    expect(session.counts.found).toBe(1);
+  });
+
+  it('сохранение этапа 1.4 (без новых полей) читается без потерь', () => {
+    const storage = new MemoryStorage();
+    const legacy = '{"v":1,"savedAt":1792764799008,"discovered":["water","fire","earth","air","steam","mud"],"recipes":["fire|water","earth|water"],"board":[{"id":"steam","x":0.5,"y":0.5}]}';
+    storage.setItem(SAVE_KEY, legacy);
+    const session = new GameSession(content, new LocalSaveStore(storage, 0));
+    expect(session.loadStatus).toBe('ok');
+    expect(session.counts.found).toBe(2);
+    expect(session.board.snapshot()).toEqual([{ id: 'steam', x: 0.5, y: 0.5 }]);
+    // Без действий игрока запись не трогается
+    session.flush();
+    expect(storage.getItem(SAVE_KEY)).toBe(legacy);
+  });
+
   it('сообщает об изменениях подписчикам', () => {
     const { session } = newSession();
     const listener = vi.fn();

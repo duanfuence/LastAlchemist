@@ -313,6 +313,32 @@ describe('фоновая музыка', () => {
     expect(sound.play('place')).toBe(true);
   });
 
+  it('первый жест во время паузы создаёт молчащий контекст, музыка одна и после снятия паузы', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    sound.setPaused(true);
+    await sound.unlock();
+    expect(context.suspendCalls).toBeGreaterThan(0);
+    expect(context.state).toBe('suspended');
+    expect(sound.play('place')).toBe(false);
+    sound.setPaused(false);
+    await sound.unlock();
+    expect(context.state).toBe('running');
+    expect(context.music).toHaveLength(1);
+  });
+
+  it('повторные паузы и возвраты не создают новых источников музыки', async () => {
+    const { sound, context } = setup({ music: MUSIC });
+    await sound.unlock();
+    for (let i = 0; i < 5; i += 1) {
+      sound.setPaused(true);
+      sound.setPaused(true);
+      sound.setPaused(false);
+      await sound.unlock();
+    }
+    expect(context.music).toHaveLength(1);
+    expect(context.music[0]!.stopped).toBe(false);
+  });
+
   it('пауза площадки приостанавливает музыку, не останавливая её', async () => {
     const { sound, context } = setup({ music: MUSIC });
     await sound.unlock();

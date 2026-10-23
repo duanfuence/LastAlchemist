@@ -13,6 +13,7 @@ export class LocalSaveStore {
   private pending: string | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private failed = false;
+  private locked = false;
 
   constructor(
     private readonly storage: StorageLike | null,
@@ -27,6 +28,19 @@ export class LocalSaveStore {
     return this.failed;
   }
 
+  /** Запись запрещена: в хранилище лежат данные, которые нельзя перезаписывать (новая версия игры). */
+  get readOnly(): boolean {
+    return this.locked;
+  }
+
+  /** Запретить запись до перезагрузки страницы. Игра продолжается, прогресс живёт только в памяти. */
+  lock(): void {
+    this.locked = true;
+    this.pending = null;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+  }
+
   read(): string | null {
     try {
       return this.storage?.getItem(SAVE_KEY) ?? null;
@@ -36,16 +50,27 @@ export class LocalSaveStore {
     }
   }
 
-  backup(raw: string): void {
+  /**
+   * Резервная копия нечитаемой записи. Прежняя копия не затирается: если в ключе уже лежит
+   * другая запись, новая сохраняется рядом под ключом с отметкой времени.
+   * Возвращает true, если копия действительно записана (или такая уже есть).
+   */
+  backup(raw: string, now = Date.now()): boolean {
+    if (!this.storage) return false;
     try {
-      this.storage?.setItem(BACKUP_KEY, raw);
+      const existing = this.storage.getItem(BACKUP_KEY);
+      if (existing === raw) return true;
+      this.storage.setItem(existing === null ? BACKUP_KEY : `${BACKUP_KEY}:${now}`, raw);
+      return true;
     } catch (error) {
       this.fail(error);
+      return false;
     }
   }
 
   /** Отложенная запись: частые изменения объединяются в одну запись. */
   schedule(serialized: string): void {
+    if (this.locked) return;
     this.pending = serialized;
     if (this.timer) return;
     this.timer = setTimeout(() => this.flush(), this.delayMs);
@@ -54,7 +79,7 @@ export class LocalSaveStore {
   flush(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
-    if (this.pending === null || !this.storage) return;
+    if (this.locked || this.pending === null || !this.storage) return;
     const data = this.pending;
     this.pending = null;
     try {

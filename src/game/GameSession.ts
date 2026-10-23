@@ -9,7 +9,7 @@ import {
   type DiscoveryCounts,
   type Progress,
 } from '../core/progress/progress';
-import { parseSave, serializeSave, type LoadStatus } from '../persistence/save';
+import { parseSave, serializeSave, type LoadStatus, type PreservedData } from '../persistence/save';
 import type { LocalSaveStore } from '../persistence/LocalSaveStore';
 
 /** Участник соединения: элемент на столе или элемент из списка (список бесконечен). */
@@ -39,6 +39,8 @@ export class GameSession {
   readonly book: RecipeBook;
   readonly board = new BoardModel();
   private progressState: Progress;
+  /** Данные записи, которые эта версия не понимает: возвращаются в запись при каждом сохранении. */
+  private readonly preserved: PreservedData;
   private readonly listeners = new Set<() => void>();
   readonly loadStatus: LoadStatus;
 
@@ -50,15 +52,28 @@ export class GameSession {
     const raw = store?.read() ?? null;
     const loaded = parseSave(raw, content);
     this.loadStatus = loaded.status;
+    this.preserved = loaded.preserved;
     if (loaded.status === 'corrupted' && raw !== null) {
-      store?.backup(raw);
+      // Чистая книга записывается только после успешной резервной копии: исходные данные не теряются
+      const saved = store?.backup(raw) ?? false;
+      if (!saved) store?.lock();
       console.warn('Сохранение повреждено, начата новая книга:', loaded.notes.join('; '));
+    } else if (loaded.status === 'newer') {
+      // Запись новой версии игры: эта версия её не перезаписывает ни при каких действиях
+      store?.lock();
+      console.warn(`Сохранение сделано более новой версией игры (формат ${loaded.version}); запись отключена.`);
     } else if (loaded.status === 'repaired') {
       console.warn('Сохранение исправлено:', loaded.notes.join('; '));
     }
     this.progressState = loaded.status === 'corrupted' ? createProgress(content) : loaded.progress;
     this.board.restore(loaded.board, (id) => this.progressState.discovered.includes(id));
     if (loaded.status === 'corrupted') this.persist();
+    // Запись старого формата остаётся нетронутой до первого изменения: тогда она уже переведена
+  }
+
+  /** Прогресс не сохраняется: запись принадлежит более новой версии или её нельзя было скопировать. */
+  get readOnly(): boolean {
+    return this.store?.readOnly ?? false;
   }
 
   get progress(): Progress {
@@ -158,6 +173,6 @@ export class GameSession {
   }
 
   private persist(): void {
-    this.store?.schedule(serializeSave(this.progressState, this.board.snapshot()));
+    this.store?.schedule(serializeSave(this.progressState, this.board.snapshot(), Date.now(), this.preserved));
   }
 }

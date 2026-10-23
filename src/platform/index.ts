@@ -11,7 +11,12 @@ export interface PlatformOptions {
   globalScope?: object;
   visibility?: VisibilitySource;
   warn?: (message: string, error?: unknown) => void;
+  /** Сколько ждать инициализации SDK, прежде чем продолжить без него (мс). */
+  initTimeoutMs?: number;
 }
+
+/** Игра ждёт SDK перед первым показом (язык нужен до текста), но не бесконечно. */
+export const SDK_INIT_TIMEOUT_MS = 6000;
 
 interface YaGamesLoader {
   init(): Promise<YandexSdk>;
@@ -30,7 +35,7 @@ function findYaGames(scope: object): YaGamesLoader | undefined {
  * игра продолжает работать на локальной платформе: SDK не должен блокировать алхимию.
  */
 export async function createPlatform(options: PlatformOptions): Promise<Platform> {
-  const { target, globalScope = globalThis, visibility, warn = console.warn } = options;
+  const { target, globalScope = globalThis, visibility, warn = console.warn, initTimeoutMs = SDK_INIT_TIMEOUT_MS } = options;
   if (target !== 'yandex') return new LocalPlatform(visibility);
 
   const loader = findYaGames(globalScope);
@@ -38,11 +43,17 @@ export async function createPlatform(options: PlatformOptions): Promise<Platform
     warn('SDK Яндекс Игр не найден, игра запущена без него.');
     return new LocalPlatform(visibility);
   }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`SDK не ответил за ${initTimeoutMs} мс`)), initTimeoutMs);
+  });
   try {
-    const sdk = await loader.init();
+    const sdk = await Promise.race([loader.init(), timeout]);
     return new YandexPlatform(sdk, visibility);
   } catch (error) {
     warn('Не удалось инициализировать SDK Яндекс Игр, игра запущена без него.', error);
     return new LocalPlatform(visibility);
+  } finally {
+    clearTimeout(timer);
   }
 }
