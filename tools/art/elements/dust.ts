@@ -3,9 +3,11 @@ import {
   HIGHLIGHT,
   INK,
   defs,
+  groundShadow,
   ink,
   inkPath,
   linear,
+  relief,
   rng,
   smooth,
   stipple,
@@ -128,8 +130,8 @@ function pebbles(): string {
   return items
     .map(([x, y, r], i) => {
       const shape: Pt[] = [[x - r, y], [x - r * 0.4, y - r * 0.8], [x + r * 0.6, y - r * 0.7], [x + r, y + r * 0.1], [x + r * 0.3, y + r * 0.7], [x - r * 0.6, y + r * 0.6]];
-      return `<path d="${smooth(shape)}" fill="${i % 2 ? '#4e4032' : '#5e5040'}"/>` +
-        inkPath(ink(shape, { width: 1.1, closed: true, shade: 0.9, seed: 90 + i }));
+      return `<path d="${smooth(shape)}" fill="${i % 2 ? '#7a6650' : '#8a7860'}" filter="url(#r-pebble)"/>` +
+        inkPath(ink(shape, { width: 0.9, closed: true, shade: 1, seed: 90 + i }), INK, 0.8);
     })
     .join('');
 }
@@ -138,10 +140,12 @@ function render(): string {
   const heap: Pt[] = [[52, 224], [72, 210], [96, 199], [122, 193], [148, 195], [172, 203], [196, 214], [210, 225], [176, 231], [128, 233], [80, 231]];
   const extra = [
     linear('heap', [90, 192], [170, 234], [
-      [0, '#7c6a4e'],
-      [0.5, '#4e3d2b'],
-      [1, '#241a11'],
+      [0, '#93805f'],
+      [0.5, '#5e4a35'],
+      [1, '#2c2015'],
     ]),
+    relief('r-soil', { frequency: 0.16, octaves: 3, roughness: 1, dome: 7, depth: 14, gloss: 0.05, strength: 1, seed: 51 }),
+    relief('r-pebble', { frequency: 0.2, octaves: 2, roughness: 0.4, dome: 1.6, depth: 5, gloss: 0.35, sharpness: 12, seed: 52 }),
     linear('beam', [40, 30], [220, 200], [
       [0, CANDLE, 0],
       [0.25, CANDLE, 0.38],
@@ -172,12 +176,13 @@ function render(): string {
     .join('');
 
   return svg(`${defs(extra)}
-  <ellipse cx="132" cy="231" rx="88" ry="9" fill="#120c08" fill-opacity="0.5" filter="url(#blur-4)"/>
-  <!-- Горка сухой земли -->
-  <path d="${smooth(heap)}" fill="url(#heap)" filter="url(#wash)"/>
+  ${groundShadow(134, 231, 84, 8)}
+  <!-- Горка сухой земли: комковатый рельеф, тёплая кромка к свету -->
+  <path d="${smooth(heap)}" fill="url(#heap)" filter="url(#r-soil)"/>
+  <path d="${smooth(heap)}" fill="#000" filter="url(#rim-warm)"/>
   <clipPath id="heap-clip"><path d="${smooth(heap)}"/></clipPath>
   <g clip-path="url(#heap-clip)">${stipple({
-    count: 900,
+    count: 600,
     bounds: [48, 188, 214, 236],
     density: (x) => 0.35 + Math.max(0, (x - 110) / 110) * 0.65,
     radius: (_x, _y, random) => 0.4 + random() * 0.9,
@@ -187,7 +192,7 @@ function render(): string {
   ${pebbles()}
   ${inkPath(ink([[52, 224], [72, 210], [92, 200]], { width: 2.4, taper: [0.2, 0.4], shade: 0.6, seed: 2 }))}
   ${inkPath(ink([[150, 196], [172, 203], [196, 214], [210, 225]], { width: 2.6, taper: [0.4, 0.2], shade: 0.6, seed: 4 }))}
-  ${inkPath(ink([[60, 229], [100, 233], [150, 233], [204, 228]], { width: 2.8, taper: [0.25, 0.25], shade: 0.4, seed: 3 }))}
+  ${inkPath(ink([[60, 229], [100, 233], [150, 233], [204, 228]], { width: 1.8, taper: [0.25, 0.25], shade: 0.4, seed: 3 }), INK, 0.8)}
 
   <!-- Вихрь: задняя половина, облако, луч, передняя половина -->
   ${groups.back}

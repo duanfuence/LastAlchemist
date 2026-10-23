@@ -1,16 +1,15 @@
 import {
   CANDLE,
   HIGHLIGHT,
-  INK,
   candleReflection,
-  coldShade,
   defs,
+  edge,
   ellipse,
-  hatch,
   ink,
   inkPath,
   linear,
   radial,
+  rimDark,
   smooth,
   svg,
   type ElementArt,
@@ -18,130 +17,159 @@ import {
 } from '../lib';
 
 /**
- * Вода: крупная прозрачная капля над лужицей.
- * Задачи: жидкость, прозрачность, отражения. Свет сверху слева, поэтому внутри капли
- * светится противоположный (нижний правый) край — каустика, сверху слева отражается окно,
- * а в нижней части видна перевёрнутая преломлённая полоса светлой страницы.
+ * Вода: тяжёлая прозрачная капля над тёмной лужицей.
+ * Вода не имеет своего цвета — её видно по тому, что она делает со светом:
+ * - край капли темнее середины (по краю свет отражается, а не проходит);
+ * - свет свечи проходит насквозь и собирается на противоположной, нижней правой стороне (каустика);
+ * - на гладкой поверхности сверху слева отражается пламя, снизу — перевёрнутая светлая страница;
+ * - в лужице отражаются капля и свеча, по воде расходятся кольца.
+ * Контур — тонкая глубокая бирюза, а не чёрная тушь: вода не должна выглядеть нарисованной.
  */
 
+const TEAL_INK = '#082228';
+
 const DROP: Pt[] = [
-  [128, 20],
-  [137, 42],
-  [154, 70],
-  [174, 100],
-  [188, 130],
-  [191, 158],
-  [182, 183],
-  [161, 200],
-  [128, 208],
-  [95, 200],
-  [74, 183],
-  [65, 158],
-  [68, 130],
-  [82, 100],
-  [102, 70],
-  [119, 42],
+  [128, 18],
+  [137, 40],
+  [154, 68],
+  [174, 98],
+  [188, 128],
+  [192, 157],
+  [183, 182],
+  [162, 199],
+  [128, 207],
+  [94, 199],
+  [73, 182],
+  [64, 157],
+  [68, 128],
+  [82, 98],
+  [102, 68],
+  [119, 40],
 ];
+
+/** Кольца на воде: светлая кромка к свету и тёмная впадина за ней. */
+function ripples(): string {
+  return [
+    { rx: 46, ry: 7.5, w: 1.8 },
+    { rx: 70, ry: 11.5, w: 1.4 },
+    { rx: 90, ry: 15, w: 1 },
+  ]
+    .map(({ rx, ry, w }, i) => {
+      const front = ellipse([128, 224], rx, ry, 18, 0.15, Math.PI - 0.15);
+      const back = ellipse([128, 224], rx, ry, 14, Math.PI + 0.45, Math.PI * 2 - 0.45);
+      const crest = ellipse([128, 223], rx, ry, 18, 0.25, Math.PI - 0.6);
+      return (
+        inkPath(ink(front, { width: w * 1.4, taper: [0.35, 0.35], shade: 0, seed: 20 + i }), TEAL_INK, 0.7 - i * 0.15) +
+        inkPath(ink(crest, { width: w, taper: [0.4, 0.4], shade: 0, seed: 30 + i }), '#b9d6cc', 0.55 - i * 0.12) +
+        inkPath(ink(back, { width: w * 0.8, taper: [0.4, 0.4], shade: 0, seed: 40 + i }), TEAL_INK, 0.4 - i * 0.1)
+      );
+    })
+    .join('');
+}
+
+/** Маленькая капля-брызга: та же оптика в миниатюре. */
+function splash([x, y]: Pt, r: number, seed: number): string {
+  const shape: Pt[] = [[x, y - r * 1.8], [x + r, y - r * 0.2], [x + r * 0.75, y + r * 0.8], [x, y + r], [x - r * 0.75, y + r * 0.8], [x - r, y - r * 0.2]];
+  const d = smooth(shape);
+  return `<ellipse cx="${x + r * 0.6}" cy="${y + r * 1.9}" rx="${r * 1.3}" ry="${r * 0.35}" fill="#06161b" fill-opacity="0.45" filter="url(#blur-1)"/>
+    <path d="${d}" fill="#2a6468"/>
+    <path d="${d}" fill="#000" filter="url(#water-fresnel-s)"/>
+    <ellipse cx="${x + r * 0.25}" cy="${y + r * 0.45}" rx="${r * 0.45}" ry="${r * 0.3}" fill="#bfe0d2" fill-opacity="0.8"/>
+    <circle cx="${x - r * 0.35}" cy="${y - r * 0.35}" r="${r * 0.22}" fill="${HIGHLIGHT}"/>
+    ${inkPath(ink(shape, { width: 0.9, closed: true, shade: 0.9, seed }), TEAL_INK, 0.9)}`;
+}
 
 function render(): string {
   const dropD = smooth(DROP);
   const extra = [
-    radial('water-body', [146, 168], 120, [
-      [0, '#86b9ab'],
-      [0.35, '#2f6f73'],
-      [0.7, '#123e4a'],
-      [1, '#081f2b'],
-    ], [156, 182]),
-    radial('caustic', [158, 186], 46, [
-      [0, '#d6eadc', 0.9],
-      [0.45, '#8dbdae', 0.6],
-      [1, '#6fa79a', 0],
+    radial('water-body', [150, 172], 128, [
+      [0, '#7fb5a6'],
+      [0.3, '#3b7c7c'],
+      [0.62, '#164854'],
+      [1, '#06202b'],
+    ], [160, 186]),
+    radial('caustic', [160, 184], 44, [
+      [0, '#f2f4dc', 0.95],
+      [0.35, '#bfe1cf', 0.7],
+      [0.7, '#7fb7a4', 0.25],
+      [1, '#7fb7a4', 0],
     ]),
-    radial('pool', [128, 226], 94, [
-      [0, '#2c5658', 0.92],
-      [0.55, '#4f7570', 0.55],
+    radial('pool', [128, 225], 98, [
+      [0, '#123c44', 0.95],
+      [0.5, '#1d4b50', 0.75],
+      [0.8, '#4c6c66', 0.35],
       [1, '#7e9a90', 0],
     ]),
-    linear('refraction', [0, 168], [0, 196], [
-      [0, '#d9c9a3', 0],
-      [0.35, '#d9c9a3', 0.55],
-      [0.6, '#c4b38c', 0.45],
-      [0.75, '#0f3440', 0.5],
-      [1, '#0f3440', 0],
+    linear('refraction', [0, 160], [0, 200], [
+      [0, '#e8d8b2', 0],
+      [0.3, '#e8d8b2', 0.5],
+      [0.55, '#cdb88f', 0.42],
+      [0.72, '#0d2f38', 0.45],
+      [1, '#0d2f38', 0],
     ]),
+    linear('reflection-fade', [0, 228], [0, 250], [
+      [0, '#fff', 0.55],
+      [1, '#fff', 0],
+    ]),
+    `<mask id="reflection-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256"><rect width="256" height="256" fill="url(#reflection-fade)"/></mask>`,
     `<clipPath id="drop-clip"><path d="${dropD}"/></clipPath>`,
-    `<mask id="drop-dark" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
-       <rect width="256" height="256" fill="url(#mask-grad)"/></mask>`,
-    linear('mask-grad', [70, 50], [160, 150], [
-      [0, '#fff'],
-      [0.55, '#fff', 0.3],
-      [1, '#000'],
+    `<clipPath id="pool-clip"><ellipse cx="128" cy="225" rx="92" ry="16"/></clipPath>`,
+    rimDark('water-fresnel', 9, '#041820', 0.85),
+    rimDark('water-fresnel-s', 1.6, '#041820', 0.7),
+    edge('water-rim', { dx: -3, dy: -4, blur: 2, color: '#cfe6dc', opacity: 0.55 }),
+    // Гладкая поверхность: объём и блик градиентами (рельефный фильтр дал бы зерно)
+    radial('water-sheen', [104, 96], 70, [
+      [0, HIGHLIGHT, 0.32],
+      [0.4, '#cfe4da', 0.12],
+      [1, '#cfe4da', 0],
     ]),
   ].join('');
 
-  // Рябь: тонкие прерывистые дуги, передние плотнее задних
-  const ripples = [
-    { rx: 50, ry: 8.5, width: 2.2 },
-    { rx: 76, ry: 13, width: 1.7 },
-  ]
-    .map(({ rx, ry, width }, i) => {
-      const frontLeft = ellipse([128, 224], rx, ry, 10, 0.2, Math.PI * 0.42);
-      const frontRight = ellipse([128, 224], rx, ry, 10, Math.PI * 0.5, Math.PI - 0.2);
-      const back = ellipse([128, 224], rx, ry, 12, Math.PI + 0.5, Math.PI * 2 - 0.5);
-      return (
-        inkPath(ink(frontLeft, { width, taper: [0.4, 0.3], seed: 20 + i })) +
-        inkPath(ink(frontRight, { width, taper: [0.3, 0.4], seed: 24 + i })) +
-        inkPath(ink(back, { width: width * 0.6, taper: [0.4, 0.4], seed: 30 + i }), INK, 0.55)
-      );
-    })
-    .join('');
+  const reflection = `<g clip-path="url(#pool-clip)" mask="url(#reflection-mask)">
+      <g transform="translate(0 452) scale(1 -1)" opacity="0.7" filter="url(#blur-1)">
+        <path d="${dropD}" fill="url(#water-body)" transform="translate(128 226) scale(1 0.35) translate(-128 -226)"/>
+      </g>
+      <ellipse cx="102" cy="232" rx="5" ry="1.6" fill="${CANDLE}" fill-opacity="0.75" filter="url(#blur-1)"/>
+    </g>`;
 
-  // Брызги: две маленькие капли рядом с лужей
-  const splash = ([x, y]: Pt, r: number, seed: number): string => {
-    const shape: Pt[] = [[x, y - r * 1.7], [x + r, y - r * 0.2], [x + r * 0.7, y + r * 0.8], [x, y + r], [x - r * 0.7, y + r * 0.8], [x - r, y - r * 0.2]];
-    return `<path d="${smooth(shape)}" fill="#24585c" filter="url(#wash)"/>` +
-      `<circle cx="${x + r * 0.25}" cy="${y + r * 0.3}" r="${r * 0.4}" fill="#9cc6b8"/>` +
-      `<circle cx="${x - r * 0.35}" cy="${y - r * 0.2}" r="${r * 0.25}" fill="${HIGHLIGHT}"/>` +
-      inkPath(ink(shape, { width: 1.5, closed: true, seed }));
-  };
-
-  // Контур: на теневой стороне (справа и снизу) тяжёлый, на освещённой — тонкий и прерывистый
-  const shadowSide: Pt[] = [[132, 30], [140, 46], [156, 72], [175, 101], [189, 131], [191, 158], [182, 183], [161, 200], [128, 208], [95, 200], [76, 186]];
-  const litSide: Pt[] = [[71, 176], [65, 156], [68, 130], [80, 104]];
-  const litTop: Pt[] = [[90, 89], [103, 69], [119, 42], [127, 22]];
+  // Контур: справа и снизу (в тени) плотнее, слева и сверху почти растворяется в свете
+  const shadowSide: Pt[] = [[134, 32], [142, 48], [157, 73], [176, 101], [189, 130], [192, 157], [183, 182], [162, 199], [128, 207], [96, 200], [78, 187]];
+  const litSide: Pt[] = [[70, 176], [64, 156], [68, 129], [80, 103]];
 
   return svg(`${defs(extra)}
-  <!-- Лужица и тень капли на воде -->
-  <ellipse cx="128" cy="225" rx="94" ry="17" fill="url(#pool)" filter="url(#wash)"/>
-  <ellipse cx="148" cy="226" rx="42" ry="7" fill="#081a20" fill-opacity="0.6" filter="url(#blur-2)"/>
-  <ellipse cx="114" cy="221" rx="20" ry="2.6" fill="${CANDLE}" fill-opacity="0.55" filter="url(#blur-2)"/>
-  ${ripples}
-  ${splash([50, 207], 5.5, 40)}
-  ${splash([208, 199], 4.5, 41)}
+  <!-- Лужица, отражение и кольца -->
+  <ellipse cx="128" cy="225" rx="98" ry="19" fill="url(#pool)"/>
+  ${reflection}
+  <ellipse cx="150" cy="226" rx="40" ry="6" fill="#030d10" fill-opacity="0.55" filter="url(#blur-2)"/>
+  <!-- Каустика: свет, прошедший сквозь каплю, падает на воду за ней -->
+  <ellipse cx="162" cy="225" rx="18" ry="3.2" fill="#d9ecd8" fill-opacity="0.45" filter="url(#blur-2)"/>
+  ${ripples()}
+  ${splash([46, 207], 5.2, 50)}
+  ${splash([212, 199], 4.2, 51)}
+  ${splash([190, 214], 2.6, 52)}
 
-  <!-- Тело капли: основная заливка и лессировки -->
+  <!-- Тело капли -->
   <g clip-path="url(#drop-clip)">
-    <path d="${dropD}" fill="url(#water-body)" filter="url(#wash)"/>
-    <!-- Тёмная лессировка вдоль освещённого края: сквозь воду видна тень -->
-    <path d="${smooth([[60, 120], [86, 82], [118, 34], [124, 70], [104, 112], [96, 150], [108, 190], [70, 186]])}" fill="#163e4a" fill-opacity="0.55" filter="url(#wash)"/>
-    <!-- Отражение комнаты: тёмная дуга горизонта -->
-    <path d="${smooth([[56, 150], [96, 141], [140, 147], [200, 137], [200, 151], [140, 161], [98, 155], [56, 166]])}" fill="#0f3440" fill-opacity="0.32" filter="url(#wash-soft)"/>
-    ${hatch({ clip: 'drop-clip', mask: 'drop-dark', angle: 58, spacing: 3.6, width: 0.9, bounds: [56, 16, 200, 212], seed: 7, opacity: 0.5 })}
-    <!-- Преломление: перевёрнутая светлая полоса страницы и лужи -->
-    <rect x="60" y="164" width="140" height="36" fill="url(#refraction)" filter="url(#wash-soft)"/>
-    <!-- Каустика: свет, собранный каплей на противоположной стороне -->
-    <ellipse cx="160" cy="184" rx="30" ry="16" transform="rotate(-28 160 184)" fill="url(#caustic)"/>
-    <!-- Холодный отсвет справа: в воде отражается сумрак комнаты -->
-    <path d="${smooth([[186, 128], [190, 158], [181, 182], [160, 198], [134, 204], [158, 192], [174, 176], [181, 152]])}" fill="#b8d4cc" fill-opacity="0.4" filter="url(#wash-soft)"/>
-    ${coldShade('water-shade', 'drop-clip', [96, 70], [190, 205], 0.4)}
+    <path d="${dropD}" fill="url(#water-body)"/>
+    <ellipse cx="104" cy="100" rx="44" ry="62" transform="rotate(24 104 100)" fill="url(#water-sheen)"/>
+    <!-- Сквозь воду видна тень левого края -->
+    <path d="${smooth([[60, 122], [86, 84], [118, 34], [124, 70], [106, 112], [98, 150], [110, 190], [70, 188]])}" fill="#0c303a" fill-opacity="0.45" filter="url(#blur-4)"/>
+    <!-- Отражение комнаты: тёмная линия горизонта -->
+    <path d="${smooth([[56, 150], [96, 142], [140, 148], [200, 138], [200, 151], [140, 160], [98, 155], [56, 165]])}" fill="#09262e" fill-opacity="0.4" filter="url(#blur-2)"/>
+    <!-- Преломление: перевёрнутая страница под каплей -->
+    <rect x="60" y="160" width="140" height="40" fill="url(#refraction)" filter="url(#blur-2)"/>
+    <ellipse cx="160" cy="184" rx="32" ry="17" transform="rotate(-28 160 184)" fill="url(#caustic)"/>
+    <path d="${dropD}" fill="#000" filter="url(#water-fresnel)"/>
+    <!-- Холодный отсвет по правому краю -->
+    <path d="${dropD}" fill="#000" filter="url(#water-rim)"/>
   </g>
-  <!-- В капле отражается пламя свечи -->
-  ${candleReflection(97, 128, 9)}
-  <path d="${smooth([[123, 48], [127, 42], [128, 56], [124, 78], [120, 82], [120, 66]])}" fill="${HIGHLIGHT}" fill-opacity="0.65"/>
-  <circle cx="171" cy="176" r="2" fill="#d8ebe4" fill-opacity="0.85"/>
-  ${inkPath(ink(shadowSide, { width: 4.6, taper: [0.25, 0.2], shade: 0.5, seed: 3 }))}
-  ${inkPath(ink(litSide, { width: 2, taper: [0.35, 0.4], shade: 0, seed: 4 }))}
-  ${inkPath(ink(litTop, { width: 1.8, taper: [0.3, 0.2], shade: 0, seed: 5 }))}
+  <!-- Пламя свечи на поверхности и узкие блики -->
+  ${candleReflection(96, 128, 8.5)}
+  <path d="${smooth([[122, 50], [126, 42], [127, 56], [123, 78], [119, 83], [119, 66]])}" fill="${HIGHLIGHT}" fill-opacity="0.7"/>
+  <path d="${smooth([[84, 160], [86, 170], [94, 182], [90, 182], [83, 172]])}" fill="${HIGHLIGHT}" fill-opacity="0.28"/>
+  <circle cx="172" cy="178" r="1.8" fill="#eef7ef" fill-opacity="0.9"/>
+  ${inkPath(ink(shadowSide, { width: 2.4, taper: [0.3, 0.25], shade: 0.6, seed: 3 }), TEAL_INK, 0.95)}
+  ${inkPath(ink(litSide, { width: 1.1, taper: [0.4, 0.4], shade: 0, seed: 4 }), TEAL_INK, 0.7)}
   `);
 }
 

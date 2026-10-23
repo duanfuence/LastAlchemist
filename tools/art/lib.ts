@@ -270,6 +270,16 @@ export function defs(extra = ''): string {
   <filter id="blur-4" x="-40%" y="-40%" width="180%" height="180%">
     <feGaussianBlur stdDeviation="4"/>
   </filter>
+  <filter id="blur-1" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="1"/>
+  </filter>
+  <filter id="blur-8" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="8"/>
+  </filter>
+  ${edge('rim-warm', { dx: 3.5, dy: 4.5, blur: 1.8, color: CANDLE, opacity: 0.5 })}
+  ${edge('rim-warm-thin', { dx: 1.6, dy: 2, blur: 0.8, color: HIGHLIGHT, opacity: 0.6 })}
+  ${edge('core-cold', { dx: -9, dy: -11, blur: 6, color: COLD, opacity: 0.55 })}
+  ${edge('core-dark', { dx: -6, dy: -8, blur: 4, color: '#0d0907', opacity: 0.5 })}
   ${extra}
 </defs>`;
 }
@@ -330,6 +340,112 @@ export function candleReflection(x: number, y: number, size: number, opacity = 1
   ];
   return `<g opacity="${opacity}"><ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(size * 1.6)}" ry="${f(size * 1.9)}" fill="${CANDLE}" fill-opacity="0.35" filter="url(#blur-4)"/>
     <path d="${smooth(flame)}" fill="${HIGHLIGHT}"/></g>`;
+}
+
+export interface ReliefOptions {
+  /** Частота шума фактуры: камень ~0.05, кирпич ~0.09, металл ~0.015; можно «x y» для волокон. */
+  frequency: number | string;
+  octaves?: number;
+  /** Вклад фактуры в высоту (0 — гладкая форма). */
+  roughness: number;
+  /** Скругление формы к краям (радиус размытия силуэта). */
+  dome: number;
+  /** Высота рельефа для освещения. */
+  depth: number;
+  /** Блеск: 0 — матовый камень, 1.5 — полированный металл. */
+  gloss?: number;
+  /** Узость блика (экспонента): 8 — широкий, 40 — точечный. */
+  sharpness?: number;
+  /** Насколько сильно освещение меняет цвет (1 — полностью). */
+  strength?: number;
+  seed?: number;
+}
+
+/**
+ * Рельефное освещение материала. Карта высот = купол (размытый силуэт — объём к краям)
+ * + шум фактуры. Её освещает тёплая свеча сверху слева (feDiffuseLighting), блестящие
+ * материалы получают блик (feSpecularLighting). Цвет рисунка умножается на свет, блик
+ * добавляется сверху, результат обрезается по исходному силуэту.
+ */
+export function relief(id: string, options: ReliefOptions): string {
+  const strength = options.strength ?? 1;
+  const gloss = options.gloss ?? 0;
+  // Плоская поверхность под таким светом даёт ≈0.64 — поднимаем, чтобы средний тон сохранялся
+  const diffuse = 1.45;
+  const specular = gloss > 0
+    ? `<feSpecularLighting in="height" surfaceScale="${options.depth}" specularConstant="${gloss}" specularExponent="${options.sharpness ?? 18}" lighting-color="${HIGHLIGHT}" result="spec"><feDistantLight azimuth="225" elevation="42"/></feSpecularLighting>
+    <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn"/>
+    <feComposite in="lit" in2="specIn" operator="arithmetic" k2="1" k3="1" result="shine"/>`
+    : `<feOffset in="lit" result="shine"/>`;
+  return `<filter id="${id}" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="${options.dome}" result="dome"/>
+    <feTurbulence type="fractalNoise" baseFrequency="${options.frequency}" numOctaves="${options.octaves ?? 4}" seed="${options.seed ?? 7}" result="noise"/>
+    <!-- Высота не должна упираться в 1, иначе фактура внутри силуэта срезается -->
+    <feComposite in="dome" in2="noise" operator="arithmetic" k2="0.62" k3="${options.roughness * 0.38}" result="heightRaw"/>
+    <!-- Карта высот 8-битная: на гладких формах ступени дают кольца. Мелкое зерно их разбивает -->
+    <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="1" seed="${(options.seed ?? 7) + 1}" result="dither"/>
+    <feComposite in="heightRaw" in2="dither" operator="arithmetic" k2="1" k3="0.012" k4="-0.006" result="heightDither"/>
+    <feGaussianBlur in="heightDither" stdDeviation="1" result="height"/>
+    <feDiffuseLighting in="height" surfaceScale="${options.depth}" diffuseConstant="${diffuse}" lighting-color="${CANDLE}" result="light"><feDistantLight azimuth="225" elevation="38"/></feDiffuseLighting>
+    <feComponentTransfer in="light" result="lightMix"><feFuncR type="linear" slope="${strength}" intercept="${1 - strength}"/><feFuncG type="linear" slope="${strength}" intercept="${1 - strength}"/><feFuncB type="linear" slope="${strength}" intercept="${1 - strength}"/></feComponentTransfer>
+    <feComposite in="SourceGraphic" in2="lightMix" operator="arithmetic" k1="1" result="lit"/>
+    ${specular}
+    <feComposite in="shine" in2="SourceAlpha" operator="in"/>
+  </filter>`;
+}
+
+export interface EdgeOptions {
+  /** Сдвиг силуэта: положительный (вниз вправо) оставляет полосу на освещённом краю сверху слева. */
+  dx: number;
+  dy: number;
+  blur: number;
+  color: string;
+  opacity: number;
+}
+
+/**
+ * Полоса света или тени вдоль края формы. Фигура с этим фильтром рисует только полосу:
+ * силуэт минус сдвинутый силуэт, размытый и обрезанный по форме. Тёплый контровой свет
+ * свечи — сдвиг вниз вправо, холодная собственная тень — вверх влево.
+ */
+export function edge(id: string, options: EdgeOptions): string {
+  return `<filter id="${id}" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+    <feOffset in="SourceAlpha" dx="${options.dx}" dy="${options.dy}" result="shifted"/>
+    <feComposite in="SourceAlpha" in2="shifted" operator="out" result="band"/>
+    <feGaussianBlur in="band" stdDeviation="${options.blur}" result="soft"/>
+    <feComposite in="soft" in2="SourceAlpha" operator="in" result="inside"/>
+    <feFlood flood-color="${options.color}" flood-opacity="${options.opacity}"/>
+    <feComposite in2="inside" operator="in"/>
+  </filter>`;
+}
+
+/**
+ * Затемнение по всему краю формы (эффект Френеля у стекла и воды, затенение у пушистого):
+ * силуэт минус размытый силуэт.
+ */
+export function rimDark(id: string, width: number, color: string, opacity: number): string {
+  return `<filter id="${id}" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="${width}" result="blur"/>
+    <feComposite in="SourceAlpha" in2="blur" operator="arithmetic" k2="1.6" k3="-1.6" result="band"/>
+    <feFlood flood-color="${color}" flood-opacity="${opacity}"/>
+    <feComposite in2="band" operator="in"/>
+  </filter>`;
+}
+
+/**
+ * Тень предмета на поверхности стола: широкая холодная полутень и плотная тень касания.
+ * Свет сверху слева, поэтому тень уходит вправо.
+ */
+export function groundShadow(cx: number, cy: number, rx: number, ry: number, opacity = 1): string {
+  return `<g opacity="${opacity}">
+    <ellipse cx="${f(cx + rx * 0.16)}" cy="${f(cy + ry * 0.15)}" rx="${f(rx * 1.12)}" ry="${f(ry * 1.25)}" fill="${COLD}" fill-opacity="0.4" filter="url(#blur-8)"/>
+    <ellipse cx="${f(cx + rx * 0.05)}" cy="${f(cy)}" rx="${f(rx * 0.82)}" ry="${f(ry * 0.6)}" fill="#0d0a08" fill-opacity="0.55" filter="url(#blur-4)"/>
+  </g>`;
+}
+
+/** Искры, пылинки, капельки: мягкий ореол и яркое ядро. */
+export function speck(x: number, y: number, r: number, color: string, core = HIGHLIGHT, halo = 0.5): string {
+  return `<circle cx="${f(x)}" cy="${f(y)}" r="${f(r * 2.4)}" fill="${color}" fill-opacity="${halo}" filter="url(#blur-2)"/><circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="${core}"/>`;
 }
 
 export interface ElementArt {

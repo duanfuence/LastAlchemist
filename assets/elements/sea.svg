@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <g class="art-ink" filter="url(#ink-wobble)">
-    <path d="M14 58 C24 50 34 50 44 58 S64 66 74 58 S94 50 104 58 S114 62 114 62 V104 C88 110 40 110 14 104 Z" class="art-wash-water art-line"/>
-    <path d="M22 76 C30 70 38 70 46 76 S62 82 70 76 S86 70 94 76 S104 80 106 78" class="art-line-thin"/>
-    <path d="M28 92 C36 86 44 86 52 92 S68 98 76 92 S92 86 100 92" class="art-line-thin"/>
-    <path d="M48 32 C52 28 56 28 58 32 C60 28 64 28 68 32 M74 22 C77 19 80 19 82 22 C84 19 87 19 90 22" class="art-line-thin"/>
-  </g>
-</svg>

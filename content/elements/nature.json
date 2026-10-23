@@ -1,11 +1,11 @@
 [
-  { "id": "rain", "category": "nature", "art": "elements/rain.svg" },
-  { "id": "cloud", "category": "nature", "art": "elements/cloud.svg" },
-  { "id": "wind", "category": "nature", "art": "elements/wind.svg", "final": true },
-  { "id": "storm", "category": "nature", "art": "elements/storm.svg", "final": true },
-  { "id": "sea", "category": "nature", "art": "elements/sea.svg" },
-  { "id": "plant", "category": "nature", "art": "elements/plant.svg" },
-  { "id": "swamp", "category": "nature", "art": "elements/swamp.svg" },
-  { "id": "volcano", "category": "nature", "art": "elements/volcano.svg" },
-  { "id": "life", "category": "nature", "art": "elements/life.svg" }
+  { "id": "rain", "category": "nature", "art": "elements/rain.webp" },
+  { "id": "cloud", "category": "nature", "art": "elements/cloud.webp" },
+  { "id": "wind", "category": "nature", "art": "elements/wind.webp", "final": true },
+  { "id": "storm", "category": "nature", "art": "elements/storm.webp", "final": true },
+  { "id": "sea", "category": "nature", "art": "elements/sea.webp" },
+  { "id": "plant", "category": "nature", "art": "elements/plant.webp" },
+  { "id": "swamp", "category": "nature", "art": "elements/swamp.webp" },
+  { "id": "volcano", "category": "nature", "art": "elements/volcano.webp" },
+  { "id": "life", "category": "nature", "art": "elements/life.webp" }
 ]

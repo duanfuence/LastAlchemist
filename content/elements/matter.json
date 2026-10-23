@@ -1,12 +1,12 @@
 [
-  { "id": "steam", "category": "matter", "art": "elements/steam.svg" },
-  { "id": "mud", "category": "matter", "art": "elements/mud.svg" },
-  { "id": "lava", "category": "matter", "art": "elements/lava.svg" },
-  { "id": "stone", "category": "matter", "art": "elements/stone.svg" },
+  { "id": "steam", "category": "matter", "art": "elements/steam.webp" },
+  { "id": "mud", "category": "matter", "art": "elements/mud.webp" },
+  { "id": "lava", "category": "matter", "art": "elements/lava.webp" },
+  { "id": "stone", "category": "matter", "art": "elements/stone.webp" },
   { "id": "dust", "category": "matter", "art": "elements/dust.webp" },
-  { "id": "sand", "category": "matter", "art": "elements/sand.svg" },
-  { "id": "metal", "category": "matter", "art": "elements/metal.svg" },
-  { "id": "glass", "category": "matter", "art": "elements/glass.svg" },
-  { "id": "ash", "category": "matter", "art": "elements/ash.svg", "final": true },
-  { "id": "brick", "category": "matter", "art": "elements/brick.svg", "final": true }
+  { "id": "sand", "category": "matter", "art": "elements/sand.webp" },
+  { "id": "metal", "category": "matter", "art": "elements/metal.webp" },
+  { "id": "glass", "category": "matter", "art": "elements/glass.webp" },
+  { "id": "ash", "category": "matter", "art": "elements/ash.webp", "final": true },
+  { "id": "brick", "category": "matter", "art": "elements/brick.webp", "final": true }
 ]

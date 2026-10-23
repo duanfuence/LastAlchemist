@@ -1,11 +1,11 @@
 [
-  { "id": "energy", "category": "alchemy", "art": "elements/energy.svg" },
-  { "id": "salt", "category": "alchemy", "art": "elements/salt.svg", "final": true },
-  { "id": "sulfur", "category": "alchemy", "art": "elements/sulfur.svg" },
-  { "id": "mercury", "category": "alchemy", "art": "elements/mercury.svg" },
-  { "id": "cinnabar", "category": "alchemy", "art": "elements/cinnabar.svg", "final": true },
-  { "id": "gunpowder", "category": "alchemy", "art": "elements/gunpowder.svg" },
-  { "id": "explosion", "category": "alchemy", "art": "elements/explosion.svg", "final": true },
-  { "id": "hourglass", "category": "alchemy", "art": "elements/hourglass.svg", "final": true },
+  { "id": "energy", "category": "alchemy", "art": "elements/energy.webp" },
+  { "id": "salt", "category": "alchemy", "art": "elements/salt.webp", "final": true },
+  { "id": "sulfur", "category": "alchemy", "art": "elements/sulfur.webp" },
+  { "id": "mercury", "category": "alchemy", "art": "elements/mercury.webp" },
+  { "id": "cinnabar", "category": "alchemy", "art": "elements/cinnabar.webp", "final": true },
+  { "id": "gunpowder", "category": "alchemy", "art": "elements/gunpowder.webp" },
+  { "id": "explosion", "category": "alchemy", "art": "elements/explosion.webp", "final": true },
+  { "id": "hourglass", "category": "alchemy", "art": "elements/hourglass.webp", "final": true },
   { "id": "homunculus", "category": "alchemy", "art": "elements/homunculus.webp", "secret": true, "final": true }
 ]

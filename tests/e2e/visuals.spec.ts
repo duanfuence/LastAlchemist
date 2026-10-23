@@ -37,15 +37,14 @@ test.describe('обложка', () => {
 });
 
 test.describe('иллюстрации элементов', () => {
-  test('рисунки новой серии загружаются, прежние эскизы остаются', async ({ page }, testInfo) => {
+  test('все начальные элементы показаны рисунками новой серии', async ({ page }, testInfo) => {
     await openLab(page, testInfo);
-    for (const id of ['water', 'fire']) {
+    for (const id of ['water', 'fire', 'earth', 'air']) {
       const image = page.getByTestId(`catalog-${id}`).locator('img');
       await expect(image).toHaveCount(1);
       await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth)).toBe(256);
+      await expect(page.getByTestId(`catalog-${id}`).locator('.medal')).toHaveAttribute('data-art', 'painting');
     }
-    await expect(page.getByTestId('catalog-earth').locator('.medal')).toHaveAttribute('data-art', 'sketch');
-    await expect(page.getByTestId('catalog-earth').locator('svg')).toHaveCount(1);
   });
 });
 
