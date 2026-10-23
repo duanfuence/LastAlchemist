@@ -18,7 +18,7 @@ body {
     var(--desk);
   color: var(--ink);
   font-family: var(--font-serif);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.4;
   /* Игровой интерфейс: без выделения текста, выноски и двойного тапа для масштаба */
   user-select: none;
@@ -59,4 +59,20 @@ button {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * Большие мониторы: книга занимает больше места, и весь интерфейс (текст, кнопки,
+ * подписи — всё, что задано в rem) растёт вместе с ней, а не остаётся мелким в центре.
+ */
+@media (min-width: 1800px) and (min-height: 1050px) {
+  html {
+    font-size: 19px;
+  }
+}
+
+@media (min-width: 2300px) and (min-height: 1300px) {
+  html {
+    font-size: 23px;
+  }
 }

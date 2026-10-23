@@ -133,7 +133,7 @@ test.describe('экран запуска', () => {
     await openLabPage(page, testInfo);
 
     await expect(page.getByTestId('catalog')).toBeVisible();
-    await expect(page.locator('.catalog-item svg').first()).toBeVisible();
+    await expect(page.locator('.catalog-item img').first()).toBeVisible();
     await expectNoHorizontalScroll(page);
 
     await press(page.getByTestId('lab-back'), testInfo);

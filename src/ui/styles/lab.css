@@ -7,11 +7,15 @@
 }
 
 .desk-bar {
+  /* Над слоем атмосферы: свет и пылинки не ложатся на кнопки */
+  position: relative;
+  z-index: 6;
   width: min(100%, 1400px);
   display: flex;
   align-items: center;
   gap: clamp(8px, 2vw, 20px);
-  min-height: 40px;
+  /* Растёт вместе со шрифтом на больших мониторах: уведомление об открытии помещается в панель */
+  min-height: max(40px, 2.6rem);
   color: var(--parchment);
 }
 
@@ -182,6 +186,35 @@
   opacity: 0.55;
 }
 
+/* Настройка изображения отделена от звука чертой */
+.sound-panel__extra {
+  padding-top: 8px;
+  border-top: 1px solid rgb(90 60 30 / 0.3);
+}
+
+/* Низкий экран (телефон боком): ползунки в одну строку с подписью, панель вдвое ниже */
+@media (orientation: landscape) and (max-height: 540px) {
+  .sound-panel {
+    gap: 2px;
+    width: min(360px, calc(100vw - 24px));
+    padding: 6px 12px 8px;
+  }
+
+  .sound-panel__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sound-panel__label {
+    min-height: 30px;
+  }
+
+  .sound-panel__extra {
+    padding-top: 2px;
+  }
+}
+
 .desk-bar__arrow {
   margin-right: 0.35em;
   font-size: 1.3em;
@@ -190,6 +223,19 @@
 
 .desk-bar__narrow {
   display: none;
+}
+
+/* Очень узкий экран (≈320 px): счётчик и кнопка списка не переносятся на две строки */
+@media (max-width: 360px) {
+  .desk-bar__counter {
+    white-space: nowrap;
+    font-size: 0.92rem;
+  }
+
+  .catalog__toggle {
+    white-space: nowrap;
+    padding: 0 0.3em;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1182,6 +1228,14 @@
 
   .board__caption-text {
     font-size: 1.1rem;
+  }
+}
+
+/* Большие мониторы: элементы растут вместе с книгой */
+@media (orientation: landscape) and (min-width: 1800px) and (min-height: 1050px) {
+  .lab {
+    --item-size: clamp(84px, 9vmin, 140px);
+    --catalog-size: clamp(66px, 6.6vmin, 104px);
   }
 }
 

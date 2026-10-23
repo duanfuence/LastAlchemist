@@ -34,6 +34,21 @@
   flex-shrink: 0;
 }
 
+/* Низкий портретный экран (≈320×568): обложка целиком помещается без прокрутки */
+@media (orientation: portrait) and (max-height: 620px) {
+  .title-page {
+    gap: 12px;
+  }
+
+  .title-page__text {
+    gap: 12px;
+  }
+
+  .title-page__emblem {
+    width: min(52vw, 25dvh);
+  }
+}
+
 /*
  * ===== Обложка =====
  * Титул — закрытая книга: тиснёные золотом название и эмблема на коже,
@@ -197,6 +212,13 @@
 
   .book[data-page='title'] .title-page .title {
     font-size: clamp(1.9rem, 4.6vmin, 3.2rem);
+  }
+}
+
+/* Ноутбук с низким экраном (≈1024×600): обложка помещается целиком */
+@media (orientation: landscape) and (min-width: 640px) and (min-height: 541px) and (max-height: 640px) {
+  .book[data-page='title'] .title-page__text {
+    gap: 10px;
   }
 }
 

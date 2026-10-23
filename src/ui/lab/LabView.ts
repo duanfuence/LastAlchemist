@@ -12,6 +12,7 @@ import type { Translator } from '../../i18n';
 import { uiArt } from '../art';
 import { el } from '../dom';
 import { ScrollEdgeWatcher } from '../scrollEdges';
+import type { Atmosphere } from '../Atmosphere';
 import { SoundControl } from '../SoundControl';
 import { DragController, type PointerPoint } from './DragController';
 import { medal } from './medal';
@@ -24,6 +25,8 @@ export interface LabDeps {
   session: GameSession;
   i18n: Translator;
   sound: SoundSystem;
+  /** Атмосферные эффекты: их переключатель — в панели настроек на столе. */
+  atmosphere?: Atmosphere;
   onExit(): void;
 }
 
@@ -117,7 +120,7 @@ export class LabView {
         this.counter,
         this.toast.root,
       ]),
-      new SoundControl(this.sound, this.i18n).root,
+      new SoundControl(this.sound, this.i18n, deps.atmosphere).root,
       clear,
     ]);
 

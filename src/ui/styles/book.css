@@ -195,6 +195,14 @@
   }
 }
 
+/* Большие мониторы: разворот крупнее, пропорции те же */
+@media (orientation: landscape) and (min-width: 1800px) and (min-height: 1050px) {
+  .book {
+    max-width: min(100%, 2100px);
+    max-height: 1320px;
+  }
+}
+
 /* Невысокий разворот (телефон боком): каждый пиксель высоты — столу; переплёт тоньше, закладки нет */
 @media (orientation: landscape) and (max-height: 540px) {
   .book {
@@ -537,4 +545,136 @@
 
 .ghost-button:hover {
   background: rgb(255 248 230 / 0.7);
+}
+
+/*
+ * ===== Атмосфера =====
+ * Над книгой: косой луч свечи с медленным «дыханием», неровное мерцание света
+ * и редкие пылинки в луче. При раскрытии книги свет вспыхивает, и из страниц
+ * поднимается облачко пыли. Анимируются только прозрачность и сдвиг — без перерисовки.
+ * Отключается в настройках (data-atmosphere="off") и при «уменьшении движения» в системе.
+ */
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.atmosphere__beam {
+  position: absolute;
+  inset: -10%;
+  background: linear-gradient(
+    118deg,
+    transparent 16%,
+    rgb(255 214 150 / 0.05) 28%,
+    rgb(255 214 150 / 0.075) 36%,
+    rgb(255 214 150 / 0.035) 46%,
+    transparent 58%
+  );
+  animation: beam-breath 11s ease-in-out infinite alternate;
+}
+
+.atmosphere__light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 62% 58% at 24% 16%, rgb(255 186 112 / 0.11), transparent 70%);
+  animation: candle-flicker 4.3s ease-in-out infinite;
+}
+
+@keyframes beam-breath {
+  0% { opacity: 0.55; }
+  50% { opacity: 1; }
+  100% { opacity: 0.75; }
+}
+
+/* Неровное пламя: короткие провалы и вспышки разной силы */
+@keyframes candle-flicker {
+  0%, 100% { opacity: 0.85; }
+  18% { opacity: 1; }
+  23% { opacity: 0.7; }
+  31% { opacity: 0.95; }
+  52% { opacity: 0.8; }
+  58% { opacity: 1; }
+  77% { opacity: 0.74; }
+  86% { opacity: 0.92; }
+}
+
+.mote {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(var(--size) / var(--reach));
+  height: calc(var(--size) / var(--reach));
+  border-radius: 50%;
+  background: rgb(255 246 226);
+  /* Пылинка светится в луче: яркое ядро и тёплый ореол — видна и на светлой странице, и на тёмном столе */
+  box-shadow: 0 0 calc(var(--size) / var(--reach) * 1.6) calc(var(--size) / var(--reach) * 0.5) rgb(255 214 150 / 0.55);
+  /*
+   * Путь каждой пылинки — один и тот же сдвиг в ключевых кадрах, повёрнутый (--angle) и растянутый (--reach).
+   * В самих кадрах нет переменных: такую анимацию браузер ведёт без главного потока.
+   */
+  rotate: var(--angle);
+  scale: var(--reach);
+  opacity: 0;
+  animation: mote-drift var(--duration) linear var(--delay) infinite;
+}
+
+@keyframes mote-drift {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 0.75; }
+  50% { transform: translate(24px, -26px); }
+  85% { opacity: 0.55; }
+  100% { opacity: 0; transform: translate(50px, -44px); }
+}
+
+.mote--puff {
+  /* Пыль из страниц — серо-бурая, светлеет, попадая в луч */
+  background: rgb(150 128 98);
+  box-shadow: 0 0 calc(var(--size) * 1.2) rgb(120 100 74 / 0.5);
+  animation: none;
+}
+
+/* Книгу раскрыли: свет вспыхивает, из страниц поднимается пыль */
+.atmosphere.is-stirred .atmosphere__light {
+  animation: candle-swell 1.4s ease-out;
+}
+
+.atmosphere.is-stirred .mote--puff {
+  animation: mote-puff 1.7s ease-out var(--delay) both;
+}
+
+@keyframes candle-swell {
+  0% { opacity: 0.85; }
+  35% { opacity: 1.6; transform: scale(1.04); }
+  100% { opacity: 0.85; transform: none; }
+}
+
+@keyframes mote-puff {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(100px, 0) scale(1); }
+}
+
+:root[data-atmosphere='off'] .atmosphere {
+  display: none;
+}
+
+:root[data-atmosphere='off'] .desk::before {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atmosphere__motes,
+  .atmosphere__puff {
+    display: none;
+  }
+
+  .atmosphere__beam,
+  .atmosphere__light,
+  .atmosphere.is-stirred .atmosphere__light,
+  .desk::before {
+    animation: none;
+  }
 }

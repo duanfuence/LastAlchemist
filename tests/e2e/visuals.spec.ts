@@ -262,3 +262,64 @@ test.describe('звук', () => {
     expect(requested.some((url) => /music/.test(url))).toBe(false);
   });
 });
+
+test.describe('атмосфера', () => {
+  test('свет и пылинки включены по умолчанию, отключаются в настройках и это запоминается', async ({ page }, testInfo) => {
+    await openLab(page, testInfo);
+    const root = page.locator('html');
+    const layer = page.getByTestId('atmosphere');
+    await expect(root).toHaveAttribute('data-atmosphere', 'on');
+    await expect(layer).toBeAttached();
+    await expect(layer.locator('.mote')).not.toHaveCount(0);
+
+    await press(page.getByTestId('sound-toggle'), testInfo);
+    const toggle = page.getByTestId('atmosphere-enabled');
+    await expect(toggle).toBeChecked();
+    await toggle.uncheck();
+    await expect(root).toHaveAttribute('data-atmosphere', 'off');
+    await expect(layer).toBeHidden();
+    // Выключенный звук не трогает настройку изображения и наоборот
+    await page.getByTestId('sound-all').uncheck();
+    await expect(toggle).toBeEnabled();
+
+    await openLab(page, testInfo);
+    await expect(root).toHaveAttribute('data-atmosphere', 'off');
+    await press(page.getByTestId('sound-toggle'), testInfo);
+    await expect(page.getByTestId('atmosphere-enabled')).not.toBeChecked();
+    await page.getByTestId('atmosphere-enabled').check();
+    await expect(root).toHaveAttribute('data-atmosphere', 'on');
+  });
+
+  test('слой атмосферы не перехватывает нажатия на столе и в списке', async ({ page }, testInfo) => {
+    await openLab(page, testInfo);
+    const hits = await page.evaluate(() => {
+      const targets = ['[data-testid="board"]', '[data-testid="catalog-water"]'];
+      return targets.map((selector) => {
+        const node = document.querySelector(selector);
+        if (!node) return 'нет';
+        const box = node.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+        return hit?.closest('.atmosphere') ? 'атмосфера' : 'ok';
+      });
+    });
+    expect(hits).toEqual(['ok', 'ok']);
+    await press(page.getByTestId('catalog-water'), testInfo);
+    await expect(boardItems(page, 'water')).toHaveCount(1);
+  });
+
+  test('раскрытие книги поднимает облачко пыли', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await press(page.getByTestId('open-book'), testInfo);
+    await expect(page.getByTestId('atmosphere')).toHaveClass(/is-stirred/);
+    await expect(page.getByTestId('atmosphere')).not.toHaveClass(/is-stirred/, { timeout: 4000 });
+  });
+
+  test('при «уменьшении движения» пылинки не показываются, свет не мерцает', async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openLab(page, testInfo);
+    await expect(page.locator('.atmosphere__motes')).toBeHidden();
+    const animation = await page.locator('.atmosphere__light').evaluate((node) => getComputedStyle(node).animationName);
+    expect(animation).toBe('none');
+  });
+});

@@ -1,5 +1,6 @@
 import type { SoundSystem } from '../audio';
 import type { Translator } from '../i18n';
+import type { Atmosphere } from './Atmosphere';
 import { el } from './dom';
 
 /** Динамик пером: волны звука или перечёркнутый. */
@@ -24,11 +25,13 @@ export class SoundControl {
   private readonly musicVolume: HTMLInputElement;
   private readonly effects: HTMLInputElement;
   private readonly effectsVolume: HTMLInputElement;
+  private readonly atmosphereInput: HTMLInputElement | null;
   private open = false;
 
   constructor(
     private readonly sound: SoundSystem,
     i18n: Translator,
+    private readonly atmosphere?: Atmosphere,
   ) {
     panelCounter += 1;
     const panelId = `sound-panel-${panelCounter}`;
@@ -74,6 +77,14 @@ export class SoundControl {
         el('label', { className: 'sound-panel__label' }, [input, el('span', { text: label })]),
         slider ?? null,
       ]);
+    // Изображение: атмосферные эффекты (свет свечи, пылинки) — не звук, поэтому не гаснут вместе с ним
+    this.atmosphereInput = atmosphere ? checkbox('atmosphere-enabled') : null;
+    const view = this.atmosphereInput
+      ? el('div', { className: 'sound-panel__extra' }, [
+          el('label', { className: 'sound-panel__label' }, [this.atmosphereInput, el('span', { text: i18n.t('view.atmosphere') })]),
+        ])
+      : null;
+    this.atmosphereInput?.addEventListener('change', () => atmosphere?.setEnabled(this.atmosphereInput?.checked ?? true));
     this.panel = el('div', {
       className: 'sound-panel',
       attrs: { id: panelId, role: 'group', 'aria-label': i18n.t('sound.settings'), 'data-testid': 'sound-panel' },
@@ -81,6 +92,7 @@ export class SoundControl {
       row(this.all, i18n.t('sound.all')),
       row(this.music, i18n.t('sound.music'), this.musicVolume),
       row(this.effects, i18n.t('sound.effects'), this.effectsVolume),
+      view,
     ]);
     this.panel.hidden = true;
     this.root = el('div', { className: 'sound-control' }, [this.button, this.panel]);
@@ -97,6 +109,7 @@ export class SoundControl {
       }
     });
     this.sound.onChange(() => this.render());
+    atmosphere?.onChange(() => this.render());
     this.render();
   }
 
@@ -121,5 +134,6 @@ export class SoundControl {
     // При выключенном звуке целиком отдельные переключатели недоступны
     for (const input of [this.music, this.effects, this.musicVolume, this.effectsVolume]) input.disabled = muted;
     this.panel.classList.toggle('is-muted', muted);
+    if (this.atmosphereInput && this.atmosphere) this.atmosphereInput.checked = this.atmosphere.enabled;
   }
 }

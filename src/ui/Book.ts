@@ -1,5 +1,6 @@
 import type { SoundSystem } from '../audio';
 import type { Translator } from '../i18n';
+import type { Atmosphere } from './Atmosphere';
 import { uiArt } from './art';
 import { el } from './dom';
 import type { LabView } from './lab/LabView';
@@ -12,6 +13,8 @@ export interface BookOptions {
   /** Создаёт лабораторию при первом открытии книги; дальше она переиспользуется. */
   createLab(onExit: () => void): LabView;
   sound?: SoundSystem;
+  /** Слой атмосферы (свет, пылинки) лежит над книгой и откликается на её раскрытие. */
+  atmosphere?: Atmosphere;
 }
 
 const prefersReducedMotion = (): boolean =>
@@ -68,7 +71,7 @@ export class Book {
       page,
     ]);
     this.notices = el('div', { className: 'desk-notices', attrs: { 'data-testid': 'notices' } });
-    this.root = el('main', { className: 'desk' }, [this.book, this.notices]);
+    this.root = el('main', { className: 'desk' }, [this.book, options.atmosphere?.layer ?? null, this.notices]);
 
     this.scrollEdges = new ScrollEdgeWatcher(this.content, page);
     this.scrollEdges.onChange(({ moreBelow }) => {
@@ -136,6 +139,7 @@ export class Book {
     this.content.dataset['page'] = page;
     this.scrollEdges.contentChanged();
     if (animate) {
+      if (page === 'lab') this.options.atmosphere?.stir();
       this.content.classList.add('is-entering');
       void afterOwnAnimation(this.content).then(() => this.content.classList.remove('is-entering'));
       // После перелистывания фокус переходит на главное действие новой страницы

@@ -20,6 +20,7 @@ import { createTranslator, resolveLocale } from './i18n';
 import { LocalSaveStore, getBrowserStorage } from './persistence/LocalSaveStore';
 import { createPlatform } from './platform';
 import { installArtDefinitions } from './ui/art';
+import { Atmosphere } from './ui/Atmosphere';
 import { Book } from './ui/Book';
 import { blockBrowserGestures } from './ui/guards';
 import { LabView } from './ui/lab/LabView';
@@ -88,9 +89,11 @@ async function bootstrap(): Promise<void> {
     document.addEventListener(type, unlockSound, { capture: true });
   }
 
+  const atmosphere = new Atmosphere(getBrowserStorage());
   book = new Book(i18n, {
-    createLab: (onExit) => new LabView({ session, i18n, sound, onExit }),
+    createLab: (onExit) => new LabView({ session, i18n, sound, atmosphere, onExit }),
     sound,
+    atmosphere,
   });
   root.replaceChildren(book.root);
   book.show('title');
