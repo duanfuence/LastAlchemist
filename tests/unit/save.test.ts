@@ -102,7 +102,7 @@ describe('сохранения других версий', () => {
     const result = parseSave(raw, pack);
     expect(result.status).toBe('ok');
     expect(result.progress.discovered).not.toContain('philosophers_stone');
-    expect(result.preserved).toEqual({ discovered: ['philosophers_stone'], recipes: ['gold|lead'], fields: { journal: { pages: 3 } } });
+    expect(result.preserved).toEqual({ discovered: ['philosophers_stone'], recipes: ['gold|lead'], story: [], fields: { journal: { pages: 3 } } });
     const saved = JSON.parse(serializeSave(result.progress, result.board, 2, result.preserved)) as Record<string, unknown>;
     expect(saved.discovered).toEqual(['water', 'fire', 'earth', 'air', 'steam', 'philosophers_stone']);
     expect(saved.recipes).toEqual(['fire|water', 'gold|lead']);

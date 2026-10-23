@@ -115,3 +115,75 @@ test.describe('исследованные элементы', () => {
     await expect(caption(page)).toContainText('исследован полностью');
   });
 });
+
+test.describe('сюжетные записи', () => {
+  const story = (page: Page) => page.getByTestId('story');
+
+  test('последний обычный опыт открывает запись один раз; перезагрузка и повтор её не вызывают', async ({ page }, testInfo) => {
+    await openWith(page, testInfo, REGULAR.filter((id) => id !== 'cinnabar'));
+    await combineFromCatalog(page, testInfo, 'mercury', 'sulfur');
+    await expect(story(page)).toBeVisible({ timeout: 5000 });
+    await expect(story(page)).toHaveAttribute('data-entry', 'research');
+    await expect(story(page)).toContainText('Книга заполнена');
+    // Запись помещается на экран целиком, кнопка видна без прокрутки
+    await expect(page.getByTestId('story-close')).toBeInViewport();
+    await expectNoHorizontalOverflow(page);
+    await press(page.getByTestId('story-close'), testInfo);
+    await expect(story(page)).toHaveCount(0);
+
+    // Повтор известного рецепта — без записи
+    await combineFromCatalog(page, testInfo, 'mercury', 'sulfur');
+    await expect(page.getByTestId('toast')).toHaveAttribute('data-kind', 'known');
+    await page.waitForTimeout(2000);
+    await expect(story(page)).toHaveCount(0);
+
+    await openLab(page, testInfo);
+    await page.waitForTimeout(2000);
+    await expect(story(page)).toHaveCount(0);
+  });
+
+  test('Гомункул после всей книги открывает финал; титул говорит, что рукопись дописана, записи можно перечитать', async ({ page }, testInfo) => {
+    await openWith(page, testInfo, REGULAR, { story: ['research'] });
+    await combineFromCatalog(page, testInfo, 'life', 'mercury');
+    await expect(story(page)).toHaveAttribute('data-entry', 'final', { timeout: 5000 });
+    await expect(story(page)).toContainText('Конец рукописи');
+    await expect(story(page).locator('img')).toHaveCount(1);
+    await press(page.getByTestId('story-close'), testInfo);
+
+    await press(page.getByTestId('lab-back'), testInfo);
+    await expect(page.locator('.hand-note')).toContainText('Рукопись дописана');
+    await press(page.getByTestId('story-reread'), testInfo);
+    await expect(story(page)).toHaveAttribute('data-entry', 'research');
+    await press(page.getByTestId('story-next'), testInfo);
+    await expect(story(page)).toHaveAttribute('data-entry', 'final');
+    await page.keyboard.press('Escape');
+    await expect(story(page)).toHaveCount(0);
+    await expect(page.getByTestId('open-book')).toBeVisible();
+  });
+
+  test('Гомункул найден раньше: обе записи идут подряд после последнего обычного опыта', async ({ page }, testInfo) => {
+    await openWith(page, testInfo, ALL.filter((id) => id !== 'cinnabar'));
+    await combineFromCatalog(page, testInfo, 'mercury', 'sulfur');
+    await expect(story(page)).toHaveAttribute('data-entry', 'research', { timeout: 5000 });
+    await press(page.getByTestId('story-next'), testInfo);
+    await expect(story(page)).toHaveAttribute('data-entry', 'final');
+    await press(page.getByTestId('story-close'), testInfo);
+    await expect(story(page)).toHaveCount(0);
+  });
+
+  test('заполненная книга из прежней версии: запись не всплывает, но её можно перечитать', async ({ page }, testInfo) => {
+    await openWith(page, testInfo, ALL);
+    await page.waitForTimeout(2000);
+    await expect(story(page)).toHaveCount(0);
+    await press(page.getByTestId('lab-back'), testInfo);
+    await expect(page.getByTestId('story-reread')).toBeVisible();
+    await expect(page.locator('.hand-note')).toContainText('Рукопись дописана');
+  });
+
+  test('пока записей нет, на титуле нет ссылки для перечитывания', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-ready', 'true');
+    await expect(page.getByTestId('story-reread')).toHaveCount(0);
+    await expect(page.locator('.hand-note')).toContainText('Всё начинается');
+  });
+});

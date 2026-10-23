@@ -11,6 +11,11 @@ export interface SaveData {
   discovered: string[];
   recipes: string[];
   board: BoardSnapshotItem[];
+  /**
+   * Сюжетные записи, которые уже наступили (этап 2.1). Необязательное поле того же формата v1:
+   * записи без него — от прежних версий — читаются как «записей нет».
+   */
+  story?: string[];
 }
 
 export type LoadStatus =
@@ -36,6 +41,7 @@ export type LoadStatus =
 export interface PreservedData {
   discovered: string[];
   recipes: string[];
+  story: string[];
   fields: Record<string, unknown>;
 }
 
@@ -43,6 +49,8 @@ export interface LoadResult {
   status: LoadStatus;
   progress: Progress;
   board: BoardSnapshotItem[];
+  /** Наступившие сюжетные записи (только известные этой версии; прочие — в preserved). */
+  story: string[];
   preserved: PreservedData;
   /** Версия формата исходной записи, если она была прочитана. */
   version?: number;
@@ -65,7 +73,7 @@ export interface SaveFormat {
 const FORMAT: SaveFormat = { version: SAVE_VERSION, migrations: MIGRATIONS };
 
 /** Поля формата, которые разбирает эта версия; остальные переносятся как есть. */
-const KNOWN_FIELDS = new Set(['v', 'savedAt', 'discovered', 'recipes', 'board']);
+const KNOWN_FIELDS = new Set(['v', 'savedAt', 'discovered', 'recipes', 'board', 'story']);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -73,13 +81,14 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const stringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
-const emptyPreserved = (): PreservedData => ({ discovered: [], recipes: [], fields: {} });
+const emptyPreserved = (): PreservedData => ({ discovered: [], recipes: [], story: [], fields: {} });
 
 export function serializeSave(
   progress: Progress,
   board: readonly BoardSnapshotItem[],
   now = Date.now(),
   preserved: PreservedData = emptyPreserved(),
+  story: readonly string[] = [],
 ): string {
   const unique = (known: readonly string[], kept: readonly string[]): string[] => [
     ...known,
@@ -92,6 +101,7 @@ export function serializeSave(
     discovered: unique(progress.discovered, preserved.discovered),
     recipes: unique(progress.recipes, preserved.recipes),
     board: board.map(({ id, x, y }) => ({ id, x: round(x), y: round(y) })),
+    ...(story.length > 0 || preserved.story.length > 0 ? { story: unique(story, preserved.story) } : {}),
   } satisfies SaveData & Record<string, unknown>;
   return JSON.stringify(data);
 }
@@ -101,13 +111,19 @@ const round = (value: number): number => Math.round(value * 10000) / 10000;
 /**
  * Разбор сохранения. Никогда не бросает исключений: любые повреждения
  * приводят к статусу 'corrupted', 'repaired' или 'newer', игра продолжает работать.
- * format — только для тестов миграций.
+ * format — только для тестов миграций; storyIds — сюжетные записи, известные этой версии.
  */
-export function parseSave(raw: string | null, content: ContentPack, format: SaveFormat = FORMAT): LoadResult {
+export function parseSave(
+  raw: string | null,
+  content: ContentPack,
+  format: SaveFormat = FORMAT,
+  storyIds: readonly string[] = [],
+): LoadResult {
   const fresh = (status: LoadStatus, notes: string[] = []): LoadResult => ({
     status,
     progress: { discovered: [...content.startingIds], recipes: [] },
     board: [],
+    story: [],
     preserved: emptyPreserved(),
     notes,
   });
@@ -183,11 +199,21 @@ export function parseSave(raw: string | null, content: ContentPack, format: Save
     board.push({ id: item['id'] as string, x: clamp(item['x'] as number), y: clamp(item['y'] as number) });
   }
 
+  const story: string[] = [];
+  for (const id of stringList(record['story'])) {
+    if (!storyIds.includes(id)) {
+      if (!preserved.story.includes(id)) preserved.story.push(id);
+    } else if (!story.includes(id)) {
+      story.push(id);
+    }
+  }
+
   const status: LoadStatus = newer ? 'newer' : notes.length > 0 ? 'repaired' : 'ok';
   return {
     status,
     progress: { discovered, recipes },
     board,
+    story,
     preserved,
     version: original,
     ...(original < format.version ? { migratedFrom: original } : {}),

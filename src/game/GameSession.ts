@@ -10,6 +10,7 @@ import {
   type Progress,
 } from '../core/progress/progress';
 import { HintGuide, exploredElements, type HintResult } from '../core/progress/exploration';
+import { STORY_ENTRIES, isStoryEntry, reachedStory, type StoryEntryId } from '../core/progress/story';
 import { parseSave, serializeSave, type LoadStatus, type PreservedData } from '../persistence/save';
 import type { LocalSaveStore } from '../persistence/LocalSaveStore';
 
@@ -24,6 +25,8 @@ export interface CombineReport {
   result?: BoardItem;
   /** Элементы стола, израсходованные соединением (только при новом открытии). */
   consumed: number[];
+  /** Сюжетные записи, наступившие этим соединением (только при новом открытии, каждая — один раз). */
+  story: StoryEntryId[];
 }
 
 /**
@@ -44,6 +47,8 @@ export class GameSession {
   private progressState: Progress;
   /** Данные записи, которые эта версия не понимает: возвращаются в запись при каждом сохранении. */
   private readonly preserved: PreservedData;
+  /** Наступившие сюжетные записи: показываются один раз, потом их можно перечитать. */
+  private readonly storyState: StoryEntryId[];
   private readonly listeners = new Set<() => void>();
   readonly loadStatus: LoadStatus;
 
@@ -54,7 +59,7 @@ export class GameSession {
     this.book = new RecipeBook(content);
     this.guide = new HintGuide(content);
     const raw = store?.read() ?? null;
-    const loaded = parseSave(raw, content);
+    const loaded = parseSave(raw, content, undefined, STORY_ENTRIES);
     this.loadStatus = loaded.status;
     this.preserved = loaded.preserved;
     if (loaded.status === 'corrupted' && raw !== null) {
@@ -71,6 +76,12 @@ export class GameSession {
     }
     this.progressState = loaded.status === 'corrupted' ? createProgress(content) : loaded.progress;
     this.board.restore(loaded.board, (id) => this.progressState.discovered.includes(id));
+    // Книга, заполненная до появления записей (сохранение прежней версии), получает их без показа:
+    // событие относится к моменту открытия, а не к загрузке. Перечитать их можно с титула.
+    this.storyState = loaded.story.filter(isStoryEntry);
+    for (const id of reachedStory(content, this.progressState)) {
+      if (!this.storyState.includes(id)) this.storyState.push(id);
+    }
     if (loaded.status === 'corrupted') this.persist();
     // Запись старого формата остаётся нетронутой до первого изменения: тогда она уже переведена
   }
@@ -86,6 +97,11 @@ export class GameSession {
 
   get counts(): DiscoveryCounts {
     return countDiscoveries(this.content, this.progressState);
+  }
+
+  /** Сюжетные записи, которые уже наступили (для перечитывания), в порядке книги. */
+  get story(): readonly StoryEntryId[] {
+    return STORY_ENTRIES.filter((id) => this.storyState.includes(id));
   }
 
   /** Элементы, из которых больше не получить ни одного нового открытия. */
@@ -149,7 +165,7 @@ export class GameSession {
     if ('uid' in first && 'uid' in second && first.uid === second.uid) return undefined;
 
     const { outcome, progress } = combine(this.book, this.progressState, firstId, secondId);
-    const report: CombineReport = { outcome, first: firstId, second: secondId, consumed: [] };
+    const report: CombineReport = { outcome, first: firstId, second: secondId, consumed: [], story: [] };
     if (outcome.kind === 'no-recipe' || outcome.kind === 'invalid') return report;
 
     // Новый рецепт известного элемента запоминается, но стол не трогается:
@@ -165,6 +181,12 @@ export class GameSession {
       }
       const result = this.board.add(outcome.element, anchor.x, anchor.y);
       if (result) report.result = result;
+      // Сюжет наступает только новым открытием: повтор рецепта, загрузка и пересчёт его не вызывают
+      for (const id of reachedStory(this.content, this.progressState)) {
+        if (this.storyState.includes(id)) continue;
+        this.storyState.push(id);
+        report.story.push(id);
+      }
     }
     if (outcome.kind !== 'known') this.changed();
     return report;
@@ -192,6 +214,6 @@ export class GameSession {
   }
 
   private persist(): void {
-    this.store?.schedule(serializeSave(this.progressState, this.board.snapshot(), Date.now(), this.preserved));
+    this.store?.schedule(serializeSave(this.progressState, this.board.snapshot(), Date.now(), this.preserved, this.storyState));
   }
 }

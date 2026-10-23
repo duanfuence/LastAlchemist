@@ -1,6 +1,8 @@
 import type { SoundSystem } from '../audio';
 import type { Translator } from '../i18n';
+import type { StoryEntryId } from '../core/progress/story';
 import type { Atmosphere } from './Atmosphere';
+import { StoryPage } from './StoryPage';
 import { uiArt } from './art';
 import { el } from './dom';
 import type { LabView } from './lab/LabView';
@@ -15,6 +17,10 @@ export interface BookOptions {
   sound?: SoundSystem;
   /** Слой атмосферы (свет, пылинки) лежит над книгой и откликается на её раскрытие. */
   atmosphere?: Atmosphere;
+  /** Наступившие сюжетные записи: с титула их можно перечитать. */
+  story?: () => readonly StoryEntryId[];
+  /** Рисунок записи (путь к иллюстрации из базы), например тайный элемент у финала. */
+  storyArt?: (entry: StoryEntryId) => string | undefined;
 }
 
 const prefersReducedMotion = (): boolean =>
@@ -52,6 +58,7 @@ export class Book {
   private readonly scrollEdges: ScrollEdgeWatcher;
   private readonly notices: HTMLElement;
   private lab: LabView | null = null;
+  private storyPage: StoryPage | null = null;
   private current: BookPage | null = null;
   private turning = false;
 
@@ -98,8 +105,32 @@ export class Book {
     this.notices.append(notice);
   }
 
+  /**
+   * Сюжетная запись поверх страниц. reread — перечитывание с титула (без эффектов наступления).
+   * Пока лист открыт, повторный вызов не открывает второй.
+   */
+  showStory(entries: readonly StoryEntryId[], reread = false): void {
+    if (entries.length === 0 || this.storyPage) return;
+    this.options.sound?.play('book');
+    if (!reread && entries.includes('final')) this.options.atmosphere?.stir();
+    this.storyPage = new StoryPage(this.i18n, entries, {
+      art: (entry) => this.options.storyArt?.(entry),
+      closeLabel: reread || this.current !== 'lab' ? 'story.close' : 'story.back',
+      onClose: () => {
+        this.storyPage = null;
+        // Титул после финала говорит, что рукопись дописана
+        if (this.current === 'title') this.swap('title', false);
+      },
+    });
+    this.page.append(this.storyPage.root);
+  }
+
+  get storyOpen(): boolean {
+    return this.storyPage !== null;
+  }
+
   show(page: BookPage): void {
-    if (page === this.current || this.turning) return;
+    if (page === this.current || this.turning || this.storyPage) return;
     const first = this.current === null;
     this.current = page;
     if (!first) this.options.sound?.play('book');
@@ -129,7 +160,12 @@ export class Book {
     } else {
       this.lab?.detach();
       this.lab?.bar.remove();
-      view = renderTitlePage(this.i18n, { onOpen: () => this.show('lab') });
+      const story = this.options.story?.() ?? [];
+      view = renderTitlePage(this.i18n, {
+        onOpen: () => this.show('lab'),
+        ...(story.length > 0 ? { onReread: () => this.showStory(this.options.story?.() ?? [], true) } : {}),
+        finished: story.includes('final'),
+      });
     }
     this.root.dataset['mode'] = page;
     this.book.dataset['page'] = page;

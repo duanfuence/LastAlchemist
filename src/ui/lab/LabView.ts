@@ -12,6 +12,7 @@ import type { Translator } from '../../i18n';
 import { uiArt } from '../art';
 import { el } from '../dom';
 import { ScrollEdgeWatcher } from '../scrollEdges';
+import type { StoryEntryId } from '../../core/progress/story';
 import type { Atmosphere } from '../Atmosphere';
 import { SoundControl } from '../SoundControl';
 import { DragController, type PointerPoint } from './DragController';
@@ -27,8 +28,13 @@ export interface LabDeps {
   sound: SoundSystem;
   /** Атмосферные эффекты: их переключатель — в панели настроек на столе. */
   atmosphere?: Atmosphere;
+  /** Наступили сюжетные записи (после анимации открытия). */
+  onStory?: (entries: readonly StoryEntryId[]) => void;
   onExit(): void;
 }
+
+/** Запись появляется после реакции открытия, чтобы игрок увидел и то и другое. */
+const STORY_DELAY_MS = 1500;
 
 /** Задержка звука открытия после звука реакции (мс): сначала соединение, затем результат. */
 const DISCOVERY_SOUND_DELAY_MS = 160;
@@ -57,6 +63,7 @@ export class LabView {
   readonly bar: HTMLElement;
 
   private readonly session: GameSession;
+  private readonly onStory: ((entries: readonly StoryEntryId[]) => void) | undefined;
   private readonly i18n: Translator;
   private readonly sound: SoundSystem;
   private readonly board: HTMLElement;
@@ -92,6 +99,7 @@ export class LabView {
 
   constructor(deps: LabDeps) {
     this.session = deps.session;
+    this.onStory = deps.onStory;
     this.i18n = deps.i18n;
     this.sound = deps.sound;
     const t = this.i18n.t.bind(this.i18n);
@@ -616,6 +624,10 @@ export class LabView {
       const names = newlyExplored.map((id) => this.i18n.element(id).name).join(', ');
       const explored = names ? ` ${this.i18n.t(newlyExplored.length > 1 ? 'lab.nowExploredMany' : 'lab.nowExplored', { names })}` : '';
       this.flashMessage(`${text.name}. ${text.description}${explored}`);
+      if (report.story.length > 0) {
+        const entries = [...report.story];
+        setTimeout(() => this.onStory?.(entries), prefersReducedMotion() ? 0 : STORY_DELAY_MS);
+      }
     } else {
       // Известный результат на стол не кладётся: подпись объясняет, куда делись участники
       const name = (id: string): string => this.i18n.element(id).name;

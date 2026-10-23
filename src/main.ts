@@ -95,9 +95,12 @@ async function bootstrap(): Promise<void> {
 
   const atmosphere = new Atmosphere(getBrowserStorage());
   book = new Book(i18n, {
-    createLab: (onExit) => new LabView({ session, i18n, sound, atmosphere, onExit }),
+    createLab: (onExit) => new LabView({ session, i18n, sound, atmosphere, onExit, onStory: (entries) => book?.showStory(entries) }),
     sound,
     atmosphere,
+    story: () => session.story,
+    // У финала — рисунок тайного элемента из базы
+    storyArt: (entry) => (entry === 'final' ? [...pack.elements.values()].find((element) => element.secret)?.art : undefined),
   });
   root.replaceChildren(book.root);
   book.show('title');

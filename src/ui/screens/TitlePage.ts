@@ -4,6 +4,10 @@ import { el } from '../dom';
 
 export interface TitlePageActions {
   onOpen(): void;
+  /** Есть наступившие сюжетные записи — их можно перечитать. */
+  onReread?: () => void;
+  /** Рукопись дописана: финал уже наступил. */
+  finished?: boolean;
 }
 
 export function renderTitlePage(i18n: Translator, actions: TitlePageActions): HTMLElement {
@@ -13,6 +17,10 @@ export function renderTitlePage(i18n: Translator, actions: TitlePageActions): HT
     attrs: { type: 'button', 'data-testid': 'open-book' },
   });
   openButton.addEventListener('click', () => actions.onOpen());
+  const reread = actions.onReread
+    ? el('button', { className: 'title-page__reread', text: i18n.t('story.reread'), attrs: { type: 'button', 'data-testid': 'story-reread' } })
+    : null;
+  if (reread && actions.onReread) reread.addEventListener('click', actions.onReread);
 
   // Две части страницы: «табличка» с эмблемой и текст. В развороте они расходятся по страницам.
   return el('section', { className: 'title-page', attrs: { 'data-screen': 'title' } }, [
@@ -27,7 +35,8 @@ export function renderTitlePage(i18n: Translator, actions: TitlePageActions): HT
         el('p', { className: 'lead', text: i18n.t('launch.subtitle') }),
       ]),
       openButton,
-      el('p', { className: 'hand-note', text: i18n.t('launch.footnote') }),
+      el('p', { className: 'hand-note', text: i18n.t(actions.finished ? 'launch.footnoteDone' : 'launch.footnote') }),
+      reread,
     ]),
   ]);
 }

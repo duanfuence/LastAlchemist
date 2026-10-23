@@ -678,3 +678,188 @@
     animation: none;
   }
 }
+
+/*
+ * ===== Сюжетная запись =====
+ * Отдельный лист, положенный поверх страниц: светлее страницы, с тенью и лёгким наклоном,
+ * как вложенная в книгу записка. Над столом — затемнение, чтобы запись читалась спокойно.
+ */
+.story {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--frame, 24px);
+  background: radial-gradient(ellipse at 50% 45%, rgb(30 18 8 / 0.25), rgb(18 10 4 / 0.55));
+}
+
+.story__sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.6vmin, 16px);
+  width: min(100%, 34rem);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: clamp(18px, 3.4vmin, 36px) clamp(18px, 4vmin, 44px) clamp(20px, 3.6vmin, 38px);
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse 80% 70% at 35% 25%, rgb(255 244 220 / 0.55), transparent 70%),
+    linear-gradient(160deg, transparent 55%, rgb(60 40 20 / 0.12)),
+    url('../../../assets/textures/parchment.webp') center / 768px,
+    var(--parchment-light);
+  box-shadow:
+    0 2px 3px rgb(40 22 8 / 0.35),
+    0 14px 34px rgb(10 6 2 / 0.55),
+    inset 0 0 40px rgb(110 76 40 / 0.35);
+  transform: rotate(-0.6deg);
+  color: var(--ink);
+  text-align: center;
+}
+
+.story.is-turning .story__sheet {
+  animation: story-in 520ms ease-out;
+}
+
+@keyframes story-in {
+  from { opacity: 0; transform: translateY(14px) rotate(-1.4deg); }
+  to { opacity: 1; transform: rotate(-0.6deg); }
+}
+
+.story__art {
+  display: block;
+  width: clamp(72px, 14vmin, 120px);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+
+.story__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.story__ornament {
+  width: min(60%, 220px);
+  height: auto;
+  aspect-ratio: 10 / 1;
+  flex-shrink: 0;
+}
+
+.story__title {
+  margin: 0;
+  font-size: clamp(1.45rem, 4.4vmin, 2.1rem);
+  font-weight: 700;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.story__title::first-letter {
+  color: var(--burgundy);
+}
+
+.story__text {
+  display: grid;
+  gap: 0.7em;
+  max-width: 30rem;
+}
+
+.story__paragraph {
+  margin: 0;
+  font-size: clamp(1.02rem, 2.6vmin, 1.18rem);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  text-align: left;
+  hyphens: auto;
+}
+
+.story__paragraph:first-child::first-letter {
+  float: left;
+  margin: 0.06em 0.08em 0 0;
+  font-size: 2.6em;
+  line-height: 0.8;
+  font-weight: 700;
+  color: var(--burgundy);
+}
+
+.story__sign {
+  font-size: clamp(1rem, 2.8vmin, 1.25rem);
+}
+
+.story__button {
+  margin-top: 4px;
+}
+
+/* Перечитать записи — тихая строка под ярлычком обложки */
+.title-page__reread {
+  min-height: 40px;
+  padding: 0.2em 0.8em;
+  border: none;
+  background: none;
+  color: #cdb07a;
+  font-family: var(--font-hand);
+  font-size: clamp(1rem, 3vmin, 1.2rem);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.title-page__reread:hover,
+.title-page__reread:focus-visible {
+  color: #ecd398;
+}
+
+/* Низкий экран (телефон боком): заголовок и кнопка слева, текст справа — запись без прокрутки */
+@media (orientation: landscape) and (max-height: 540px) {
+  .story {
+    padding: 8px 16px;
+  }
+
+  .story__sheet {
+    display: grid;
+    grid-template-columns: minmax(9rem, 0.7fr) 1.3fr;
+    grid-template-rows: auto auto auto 1fr auto;
+    align-items: center;
+    column-gap: 22px;
+    row-gap: 6px;
+    width: min(100%, 52rem);
+    padding: 14px 22px;
+  }
+
+  .story__sheet > :not(.story__text) {
+    grid-column: 1;
+  }
+
+  .story__text {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    gap: 0.5em;
+  }
+
+  .story__art {
+    width: 64px;
+    justify-self: center;
+  }
+
+  .story__title {
+    font-size: 1.3rem;
+  }
+
+  .story__paragraph {
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  .story__button {
+    min-width: 0;
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story.is-turning .story__sheet {
+    animation: none;
+  }
+}
